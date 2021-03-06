@@ -277,6 +277,6 @@ void PictureCalculations::RandomForests(std::string& picName)
 
 	imshow(sobelWindowName, edges);
 	imshow(randomWindowName, edge_nms);
-	waitKey(0);
+	while (waitKey(0) != 27);
 	destroyAllWindows();
 }
