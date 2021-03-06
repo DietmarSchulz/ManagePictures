@@ -79,7 +79,14 @@ void PictureCalculations::AddPicture(std::string& firstPic)
 	int iDummy{ 0 };
 	callbackForTrackBar(iDummy, (void*)&doBlending);
 	
-	while (waitKey(0) != 27); // Wait for ESC key stroke
+	auto wait_time = 1000;
+	while (getWindowProperty(firstAndSecondAdded, WND_PROP_VISIBLE) >= 1) {
+		auto keyCode = waitKey(wait_time);
+		if (keyCode == 27) { // Wait for ESC key stroke
+			destroyAllWindows();
+			break;
+		}
+	}
 
 	destroyAllWindows(); //destroy all open windows
 }
@@ -234,7 +241,14 @@ void PictureCalculations::RGBManipulation(string& picName)
 	createTrackbar("Gamma gruen", greenWindowName, &greenGammaI, 200, callbackForTrackBars, (void*)&doGammaLUT);
 	createTrackbar("Gamma blau", blueWindowName, &blueGammaI, 200, callbackForTrackBars, (void*)&doGammaLUT);
 
-	while (waitKey(0) != 27); // Wait for ESC key stroke
+	auto wait_time = 1000;
+	while (getWindowProperty(resultWindowName, WND_PROP_VISIBLE) >= 1) {
+		auto keyCode = waitKey(wait_time);
+		if (keyCode == 27) { // Wait for ESC key stroke
+			destroyAllWindows();
+			break;
+		}
+	}
 
 	destroyAllWindows(); //destroy all open windows
 }
@@ -277,6 +291,14 @@ void PictureCalculations::RandomForests(std::string& picName)
 
 	imshow(sobelWindowName, edges);
 	imshow(randomWindowName, edge_nms);
-	while (waitKey(0) != 27);
+
+	auto wait_time = 1000;
+	while (getWindowProperty(randomWindowName, WND_PROP_VISIBLE) >= 1) {
+		auto keyCode = waitKey(wait_time);
+		if (keyCode == 27) { // Wait for ESC key stroke
+			destroyAllWindows();
+			break;
+		}
+	}
 	destroyAllWindows();
 }
