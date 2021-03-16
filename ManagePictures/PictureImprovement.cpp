@@ -147,10 +147,10 @@ Net PictureImprovement::prepareObjectRecognition(vector<string>& classes)
 	}
 
 	// Load a model.
-	Net net = readNet(modelPath, configPath);
-	net.setPreferableBackend(0);
-	//net.setPreferableBackend(1000000);
-	net.setPreferableTarget(0);
+	dnn::Net net = dnn::readNetFromDarknet(configPath, modelPath);
+	net.setPreferableTarget(dnn::DNN_TARGET_CUDA);
+	net.setPreferableBackend(dnn::DNN_BACKEND_CUDA);
+
 	return net;
 }
 

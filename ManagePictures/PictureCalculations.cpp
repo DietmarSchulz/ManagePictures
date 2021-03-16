@@ -1,8 +1,9 @@
 #include "PictureCalculations.h"
-#include <opencv2/opencv.hpp>
 #include <opencv2/bioinspired.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/ximgproc.hpp>
+#include <opencv2/line_descriptor.hpp>
+#include <opencv2/xfeatures2d/nonfree.hpp>
 
 #include <QtWidgets/qfiledialog.h>
 #include <QtWidgets/qmessagebox.h>
@@ -10,6 +11,7 @@
 using namespace std;
 using namespace cv;
 using namespace cv::ximgproc;
+using namespace cv::line_descriptor;
 
 void PictureCalculations::AddPicture(std::string& firstPic)
 {
@@ -273,13 +275,14 @@ void PictureCalculations::RandomForests(std::string& picName)
 	namedWindow(randomWindowName, WINDOW_NORMAL);
 	moveWindow(randomWindowName, 800, 0);
 
-	orgImg.convertTo(orgImg, DataType<float>::type, 1 / 255.0);
+	Mat orgFloat;
+	orgImg.convertTo(orgFloat, DataType<float>::type, 1 / 255.0);
 
-	Mat edges(orgImg.size(), orgImg.type());
+	Mat edges(orgFloat.size(), orgFloat.type());
 
 	Ptr<StructuredEdgeDetection> pDollar =
 		createStructuredEdgeDetection("models/model.yml");
-	pDollar->detectEdges(orgImg, edges);
+	pDollar->detectEdges(orgFloat, edges);
 
 	// computes orientation from edge map
 	Mat orientation_map;
@@ -292,6 +295,73 @@ void PictureCalculations::RandomForests(std::string& picName)
 	imshow(sobelWindowName, edges);
 	imshow(randomWindowName, edge_nms);
 
+	string resultWindowName{ "Original - Random Forest" };
+	namedWindow(resultWindowName, WINDOW_NORMAL);
+	moveWindow(resultWindowName, 400, 400);
+
+	double minVal, maxVal;
+	minMaxLoc(edge_nms, &minVal, &maxVal); //find minimum and maximum intensities
+	edge_nms.convertTo(edge_nms, CV_8U, 255.0 / (maxVal - minVal), -minVal * 255.0 / (maxVal - minVal));
+
+	cvtColor(edge_nms, edge_nms, COLOR_GRAY2BGR);
+
+	edge_nms.convertTo(edge_nms, CV_8UC3);
+	resize(edge_nms, edge_nms, size(orgImg));
+	Mat res = orgImg - edge_nms;
+
+	imshow(resultWindowName, res);
+
+	// Geht wegen Lizenzbeschränkung nicht...
+	//auto res = QMessageBox::question(nullptr, "Mit LSD Line Detector?",
+	//	"Sollen Kanten des LSD Detectors gezeigt werden?", QMessageBox::StandardButton::Yes, QMessageBox::StandardButton::No);
+
+	//if (res == QMessageBox::StandardButton::Yes) {
+	//	cv::Mat output = orgImg.clone();
+
+	//	/* create a random binary mask */
+	//	Mat mask = Mat::ones(orgImg.size(), CV_8UC1);
+
+	//	/* create a pointer to a BinaryDescriptor object with deafult parameters */
+	//	Ptr<LSDDetector> bd = LSDDetector::createLSDDetector();
+
+	//	/* create a structure to store extracted lines */
+	//	vector<KeyLine> lines;
+
+	//	/* extract lines */
+	//	//cvtColor(orgImg, orgImg, COLOR_BGR2GRAY);
+	//	orgImg = imread(picName, 1);
+	//	bd->detect(orgImg, lines, 2, 1, mask);
+
+
+	//	/* draw lines extracted from octave 0 */
+	//	if (output.channels() == 1)
+	//		cvtColor(output, output, COLOR_GRAY2BGR);
+	//	for (size_t i = 0; i < lines.size(); i++)
+	//	{
+	//		KeyLine kl = lines[i];
+	//		if (kl.octave == 0)
+	//		{
+	//			/* get a random color */
+	//			int R = (rand() % (int)(255 + 1));
+	//			int G = (rand() % (int)(255 + 1));
+	//			int B = (rand() % (int)(255 + 1));
+
+	//			/* get extremes of line */
+	//			Point pt1 = Point2f(kl.startPointX, kl.startPointY);
+	//			Point pt2 = Point2f(kl.endPointX, kl.endPointY);
+
+	//			/* draw line */
+	//			line(output, pt1, pt2, Scalar(B, G, R), 3);
+	//		}
+
+	//	}
+
+	//	/* show lines on image */
+	//	string lsdLines = "LSD Kanten";
+	//	namedWindow(lsdLines, WINDOW_NORMAL);
+	//	imshow(lsdLines, output);
+	//}
+
 	auto wait_time = 1000;
 	while (getWindowProperty(randomWindowName, WND_PROP_VISIBLE) >= 1) {
 		auto keyCode = waitKey(wait_time);
@@ -300,5 +370,218 @@ void PictureCalculations::RandomForests(std::string& picName)
 			break;
 		}
 	}
+	destroyAllWindows();
+}
+
+void PictureCalculations::calcChessboardCorners(Size boardSize, float squareSize, vector<Point3f>& corners, Pattern patternType)
+{
+	corners.resize(0);
+	switch (patternType) {
+	case CHESSBOARD:
+	case CIRCLES_GRID:
+		for (int i = 0; i < boardSize.height; i++)
+			for (int j = 0; j < boardSize.width; j++)
+				corners.push_back(Point3f(float(j * squareSize),
+					float(i * squareSize), 0));
+		break;
+	case ASYMMETRIC_CIRCLES_GRID:
+		for (int i = 0; i < boardSize.height; i++)
+			for (int j = 0; j < boardSize.width; j++)
+				corners.push_back(Point3f(float((2 * j + i % 2) * squareSize),
+					float(i * squareSize), 0));
+		break;
+	default:
+		CV_Error(Error::StsBadArg, "Unknown pattern type\n");
+	}
+}
+
+Mat PictureCalculations::computeHomography(const Mat& R_1to2, const Mat& tvec_1to2, const double d_inv, const Mat& normal)
+{
+	Mat homography = R_1to2 + d_inv * tvec_1to2 * normal.t();
+	return homography;
+}
+
+void PictureCalculations::computeC2MC1(const Mat& R1, const Mat& tvec1, const Mat& R2, const Mat& tvec2, Mat& R_1to2, Mat& tvec_1to2)
+{
+	//c2Mc1 = c2Mo * oMc1 = c2Mo * c1Mo.inv()
+	R_1to2 = R2 * R1.t();
+	tvec_1to2 = R2 * (-R1.t() * tvec1) + tvec2;
+}
+
+/**
+ * @function randomColor
+ * @brief Produces a random color given a random object
+ */
+Scalar PictureCalculations::randomColor(RNG& rng)
+{
+	int icolor = (unsigned)rng;
+	return Scalar(icolor & 255, (icolor >> 8) & 255, (icolor >> 16) & 255);
+}
+
+void PictureCalculations::decomposeHomography(const string& img1Path, const string& img2Path, const cv::Size& patternSize, const float squareSize, const string& intrinsicsPath)
+{
+	Mat img1 = imread(img1Path);
+	Mat img2 = imread(img2Path);
+	vector<Point2f> corners1, corners2;
+	bool found1 = findChessboardCorners(img1, patternSize, corners1);
+	bool found2 = findChessboardCorners(img2, patternSize, corners2);
+	if (!found1 || !found2)
+	{
+		cout << "Error, cannot find the chessboard corners in both images." << endl;
+		return;
+	}
+	vector<Point3f> objectPoints;
+	calcChessboardCorners(patternSize, squareSize, objectPoints);
+	FileStorage fs(intrinsicsPath, FileStorage::READ);
+	Mat cameraMatrix, distCoeffs;
+	fs["camera_matrix"] >> cameraMatrix;
+	fs["distortion_coefficients"] >> distCoeffs;
+	vector<Point2f> objectPointsPlanar;
+	for (size_t i = 0; i < objectPoints.size(); i++)
+	{
+		objectPointsPlanar.push_back(Point2f(objectPoints[i].x, objectPoints[i].y));
+	}
+	Mat rvec1, tvec1;
+	solvePnP(objectPoints, corners1, cameraMatrix, distCoeffs, rvec1, tvec1);
+	Mat rvec2, tvec2;
+	solvePnP(objectPoints, corners2, cameraMatrix, distCoeffs, rvec2, tvec2);
+	Mat R1, R2;
+	Rodrigues(rvec1, R1);
+	Rodrigues(rvec2, R2);
+	Mat R_1to2, t_1to2;
+	computeC2MC1(R1, tvec1, R2, tvec2, R_1to2, t_1to2);
+	Mat rvec_1to2;
+	Rodrigues(R_1to2, rvec_1to2);
+	Mat normal = (Mat_<double>(3, 1) << 0, 0, 1);
+	Mat normal1 = R1 * normal;
+	Mat origin(3, 1, CV_64F, Scalar(0));
+	Mat origin1 = R1 * origin + tvec1;
+	double d_inv1 = 1.0 / normal1.dot(origin1);
+	Mat homography_euclidean = computeHomography(R_1to2, t_1to2, d_inv1, normal1);
+	Mat homography = cameraMatrix * homography_euclidean * cameraMatrix.inv();
+	homography /= homography.at<double>(2, 2);
+	homography_euclidean /= homography_euclidean.at<double>(2, 2);
+	vector<Mat> Rs_decomp, ts_decomp, normals_decomp;
+	int solutions = decomposeHomographyMat(homography, cameraMatrix, Rs_decomp, ts_decomp, normals_decomp);
+	cout << "Decompose homography matrix computed from the camera displacement:" << endl << endl;
+	for (int i = 0; i < solutions; i++)
+	{
+		double factor_d1 = 1.0 / d_inv1;
+		Mat rvec_decomp;
+		Rodrigues(Rs_decomp[i], rvec_decomp);
+		cout << "Solution " << i << ":" << endl;
+		cout << "rvec from homography decomposition: " << rvec_decomp.t() << endl;
+		cout << "rvec from camera displacement: " << rvec_1to2.t() << endl;
+		cout << "tvec from homography decomposition: " << ts_decomp[i].t() << " and scaled by d: " << factor_d1 * ts_decomp[i].t() << endl;
+		cout << "tvec from camera displacement: " << t_1to2.t() << endl;
+		cout << "plane normal from homography decomposition: " << normals_decomp[i].t() << endl;
+		cout << "plane normal at camera 1 pose: " << normal1.t() << endl << endl;
+	}
+	Mat H = findHomography(corners1, corners2);
+	solutions = decomposeHomographyMat(H, cameraMatrix, Rs_decomp, ts_decomp, normals_decomp);
+	cout << "Decompose homography matrix estimated by findHomography():" << endl << endl;
+	for (int i = 0; i < solutions; i++)
+	{
+		double factor_d1 = 1.0 / d_inv1;
+		Mat rvec_decomp;
+		Rodrigues(Rs_decomp[i], rvec_decomp);
+		cout << "Solution " << i << ":" << endl;
+		cout << "rvec from homography decomposition: " << rvec_decomp.t() << endl;
+		cout << "rvec from camera displacement: " << rvec_1to2.t() << endl;
+		cout << "tvec from homography decomposition: " << ts_decomp[i].t() << " and scaled by d: " << factor_d1 * ts_decomp[i].t() << endl;
+		cout << "tvec from camera displacement: " << t_1to2.t() << endl;
+		cout << "plane normal from homography decomposition: " << normals_decomp[i].t() << endl;
+		cout << "plane normal at camera 1 pose: " << normal1.t() << endl << endl;
+	}
+
+	Mat img1_warp;
+	warpPerspective(img1, img1_warp, H, img1.size());	
+	Mat both;
+	hconcat(img1, img1_warp, both);
+
+	string windowBoth{ "Org und homograph verschoben" };
+	namedWindow(windowBoth, WINDOW_NORMAL);
+	imshow(windowBoth, both);
+
+	/// Also create a random object (RNG)
+	RNG rng(0xFFFFFFFF);
+
+	Mat img_draw_matches;
+	hconcat(img1, img2, img_draw_matches);
+	for (size_t i = 0; i < corners1.size(); i++)
+	{
+		Mat pt1 = (Mat_<double>(3, 1) << corners1[i].x, corners1[i].y, 1);
+		Mat pt2 = H * pt1;
+		pt2 /= pt2.at<double>(2);
+		Point end((int)(img1.cols + pt2.at<double>(0)), (int)pt2.at<double>(1));
+		line(img_draw_matches, corners1[i], end, randomColor(rng), 2);
+	}
+
+	string mapping{ "Zeichne Zuordnungen" };
+	namedWindow(mapping, WINDOW_NORMAL);
+	imshow(mapping, img_draw_matches);
+
+	auto wait_time = 1000;
+	while (getWindowProperty(windowBoth, WND_PROP_VISIBLE) >= 1) {
+		auto keyCode = waitKey(wait_time);
+		if (keyCode == 27) { // Wait for ESC key stroke
+			destroyAllWindows();
+			break;
+		}
+	}
+	destroyAllWindows();
+	cout << "Output finished!\n";
+}
+
+void PictureCalculations::Homography(string& picName)
+{
+	Size patternSize(9, 6);
+	float squareSize = (float)0.025;
+	string secondPic = QFileDialog::getOpenFileName(nullptr, "Second picture for sum", QString(), "All picture Files (*.jpg *.png *.tiff)").toStdString();
+	if (secondPic.empty()) {
+		cout << "nothing\n";
+		destroyAllWindows();
+		return;
+	}
+	decomposeHomography(picName,
+		secondPic,
+		patternSize, squareSize,
+		"Pics/left_intrinsics.yml");
+}
+
+void PictureCalculations::Matches(std::string& picName)
+{
+	using namespace xfeatures2d;
+	string secondPic = QFileDialog::getOpenFileName(nullptr, "Second picture for sum", QString(), "All picture Files (*.jpg *.png *.tiff)").toStdString();
+	if (secondPic.empty()) {
+		cout << "nothing\n";
+		destroyAllWindows();
+		return;
+	}
+	Mat img1 = imread(picName);
+	Mat img2 = imread(secondPic);
+
+	// detecting keypoints
+	Ptr<Feature2D> surf = SURF::create();
+	vector<KeyPoint> keypoints1;
+	Mat descriptors1;
+	surf->detectAndCompute(img1, Mat(), keypoints1, descriptors1);
+	vector<KeyPoint> keypoints2;
+	Mat descriptors2;
+	surf->detectAndCompute(img2, Mat(), keypoints2, descriptors2);
+
+	// matching descriptors
+	BFMatcher matcher;
+	vector<DMatch> matches;
+	matcher.match(descriptors1, descriptors2, matches);
+
+	// drawing the results
+	Mat img_matches;
+	drawMatches(img1, keypoints1, img2, keypoints2, matches, img_matches, Scalar::all(-1),
+		Scalar::all(-1), std::vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS);
+	string matchWindow{ "matches" };
+	namedWindow(matchWindow, WINDOW_NORMAL);
+	imshow(matchWindow, img_matches);
+	while (waitKey(100) != 27);
 	destroyAllWindows();
 }

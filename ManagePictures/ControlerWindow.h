@@ -66,6 +66,8 @@ public:
 			"RGB manipulation",
 			"Single hd.wr Digs",
 			"Random forests",
+			"Homography",
+			"Matches",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -138,6 +140,12 @@ public slots:
 			return;
 		case 13:
 			calcPics.RandomForests(currFileName);
+			return;
+		case 14:
+			calcPics.Homography(currFileName);
+			return;
+		case 15:
+			calcPics.Matches(currFileName);
 			return;
 		}
 	};
