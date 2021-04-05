@@ -13,6 +13,7 @@
 using namespace std;
 using namespace cv;
 using namespace cv::dnn;
+using namespace cv::ximgproc;
 
 void PictureImprovement::fillHoles(cv::Mat& mask)
 {
@@ -23,25 +24,367 @@ void PictureImprovement::fillHoles(cv::Mat& mask)
 	mask = (mask2 | mask);
 }
 
+void PictureImprovement::CropFace(const size_t& i, cv::Mat& faceROI, cv::Mat& ioMat, vector<Rect>& faces)
+{
+	string plainGray{ "Gesicht ohne eq " + to_string(i) };
+	namedWindow(plainGray, WINDOW_NORMAL);
+	moveWindow(plainGray, 800, 0);
+
+	string plainGrayEq{ "Gesicht" + to_string(i) };
+	namedWindow(plainGrayEq, WINDOW_NORMAL);
+	moveWindow(plainGrayEq, 800, 400);
+
+	imshow(plainGray, faceROI);
+	equalizeHist(faceROI, faceROI); // Just a try to get it lighter
+
+	imshow(plainGrayEq, faceROI);
+
+	string randomWindowName{ "Random Forest " + to_string(i) };
+	namedWindow(randomWindowName, WINDOW_NORMAL);
+	moveWindow(randomWindowName, 800, 800);
+
+	// Try to get a face cropped as bitmask
+	Mat colorFace = ioMat(faces[i]).clone();
+	Mat orgFloat;
+	colorFace.convertTo(orgFloat, DataType<float>::type, 1 / 255.0);
+
+	Mat edges(orgFloat.size(), orgFloat.type());
+
+	string edgesWindowName{ "Kanten " + to_string(i) };
+	namedWindow(edgesWindowName, WINDOW_NORMAL);
+	moveWindow(edgesWindowName, 1200, 800);
+
+	pDollar->detectEdges(orgFloat, edges);
+	imshow(edgesWindowName, edges);
+
+	// computes orientation from edge map
+	Mat orientation_map;
+	pDollar->computeOrientation(edges, orientation_map);
+
+	// suppress edges
+	Mat edge_nms;
+	pDollar->edgesNms(edges, orientation_map, edge_nms, 2, 0, 1, true);
+
+	imshow(randomWindowName, edge_nms);
+
+	string threshedEdgeWindowName{ "Kanten gekappt " + to_string(i) };
+	namedWindow(threshedEdgeWindowName, WINDOW_NORMAL);
+	moveWindow(threshedEdgeWindowName, 1400, 800);
+
+	Mat threshedEdges;
+	Mat edge_nmsByte;
+	edge_nms.convertTo(edge_nmsByte, DataType<unsigned char>::type, 255.0);
+	threshold(edge_nmsByte, threshedEdges, 0, 255, THRESH_BINARY | THRESH_OTSU);
+	imshow(threshedEdgeWindowName, threshedEdges);
+
+	for (auto m = 0; m < faceROI.size().height; m++) {
+		for (auto n = 0; n < faceROI.size().width; n++) {
+			if (edge_nms.at<float>(m, n) > 0.2f)
+				colorFace.at<cv::Vec3b>(m, n) = { 255, 255, 255 };
+		}
+	}
+	string colorBitmaskWindowName{ "Schwellwert Farb" + to_string(i) };
+	namedWindow(colorBitmaskWindowName, WINDOW_NORMAL);
+	moveWindow(colorBitmaskWindowName, 800, 400);
+	imshow(colorBitmaskWindowName, colorFace);
+
+	// Bitmaks from edges_nms:
+	Mat faceBitMask = Mat::zeros(size(edge_nms), CV_8UC1);
+	auto horizontalMid = faceBitMask.size().width / 2 + 1;
+
+	// from left to mid in all rows
+	for (auto m = 0; m < faceBitMask.size().height; m++) {
+		auto edgeFound = false;
+		for (auto n = 0; n <= horizontalMid; n++) {
+			if (edge_nms.at<float>(m, n) > edgeThreshold) {
+				edgeFound = true;
+			}
+			if (edgeFound) {
+				faceBitMask.at<unsigned char>(m, n) = 255;
+			}
+		}
+	}
+
+	// from right to mid in all rows
+	for (auto m = 0; m < faceBitMask.size().height; m++) {
+		auto edgeFound = false;
+		for (auto n = faceBitMask.size().width - 1; n >= horizontalMid; n--) {
+			if (edge_nms.at<float>(m, n) > edgeThreshold) {
+				edgeFound = true;
+			}
+			if (edgeFound) {
+				faceBitMask.at<unsigned char>(m, n) = 255;
+			}
+		}
+	}
+
+	string bitmaskWindowName{ "Gesichtsbitmask " + to_string(i) };
+	namedWindow(bitmaskWindowName, WINDOW_NORMAL);
+	moveWindow(bitmaskWindowName, 800, 600);
+	imshow(bitmaskWindowName, faceBitMask);
+
+	auto contEdges = continuousEdges(edge_nms);
+	//auto contEdges = continuousEdges(edges);
+	std::ranges::sort(contEdges, [](auto& fst, auto& snd) {
+		return fst.size() > snd.size();
+	});
+	if (contEdges.size() > 0) {
+		string edgeWindowName{ "Laengste Randlinie " + to_string(i) };
+		namedWindow(edgeWindowName, WINDOW_NORMAL);
+		moveWindow(edgeWindowName, 800, 600);
+
+		Mat longestEdge = Mat::zeros(size(edge_nms), CV_8UC1);
+		auto numPoints{ 0 };
+		auto k{ 0 };
+		while (k < contEdges.size() && numPoints < 2 * edge_nms.size().height +  edge_nms.size().width) {
+			for (auto p : contEdges[k]) {
+				longestEdge.at<unsigned char>(p.x, p.y) = 255;
+			}
+			numPoints += (int) contEdges[k].size();
+			k++;
+		}
+		cout << k << " Kanten werden benutzt.\n";
+		imshow(edgeWindowName, longestEdge);
+
+
+		string bitmaskLongestEdgeWindowName{ "Gesichtsbitmask nach laengster Kannte " + to_string(i) };
+		namedWindow(bitmaskLongestEdgeWindowName, WINDOW_NORMAL);
+		moveWindow(bitmaskLongestEdgeWindowName, 1200, 0);
+
+		// Bitmaks from longest edge:
+		Mat faceBitMaskLongestEdge = Mat::zeros(size(longestEdge), CV_8UC1);
+
+		// Initialize with ellipse:
+		Point center(faceBitMaskLongestEdge.size().width / 2 + 1, faceBitMaskLongestEdge.size().height / 2);
+		ellipse(faceBitMaskLongestEdge, center, Size(edges.size().width / 2.7, edges.size().height / 2.6), 0, 0, 360, Scalar(255), -1); // -1 to fill
+
+
+		// from left to mid in all rows
+		for (auto m = 0; m < faceBitMaskLongestEdge.size().height; m++) {
+			auto edgeFound = false;
+			for (auto n = 0; n <= horizontalMid; n++) {
+				if (longestEdge.at<unsigned char>(m, n) > 0) {
+					edgeFound = true;
+				}
+				if (edgeFound) {
+					faceBitMaskLongestEdge.at<unsigned char>(m, n) = 255;
+				}
+			}
+		}
+
+		// from right to mid in all rows
+		for (auto m = 0; m < faceBitMaskLongestEdge.size().height; m++) {
+			auto edgeFound = false;
+			for (auto n = faceBitMaskLongestEdge.size().width - 1; n >= horizontalMid; n--) {
+				if (longestEdge.at<unsigned char>(m, n) > 0) {
+					edgeFound = true;
+				}
+				if (edgeFound) {
+					faceBitMaskLongestEdge.at<unsigned char>(m, n) = 255;
+				}
+			}
+		}
+		auto verticalMid = faceBitMaskLongestEdge.size().height / 2 + 1;
+		// from vertical Mid to Top
+		for (auto n = 0; n < faceBitMaskLongestEdge.size().width; n++) {
+			auto edgeFound = false;
+			for (auto m = verticalMid; m >= 0; m--) {
+				if (longestEdge.at<unsigned char>(m, n) > 0) {
+					edgeFound = true;
+				}
+				if (!edgeFound) {
+					// After the edge we change nothing! But else: We propagate last line in up direction
+					faceBitMaskLongestEdge.at<unsigned char>(m, n) = faceBitMaskLongestEdge.at<unsigned char>(m + 1, n);
+				}
+			}
+		}
+
+		imshow(bitmaskLongestEdgeWindowName, faceBitMaskLongestEdge);
+
+		// To bild up big bitmask of faces:
+		//Mat bigImage = imread("redSquare.png", -1);
+		//Mat lilImage = imread("blueSquare.png", -1);
+
+		//Mat insetImage(bigImage, Rect(70, 70, 100, 100));
+		//lilImage.copyTo(insetImage);
+
+		//imshow("Overlay Image", bigImage);
+
+		// To crop faces from images using bitmasks:
+		// src1_mask = cv2.cvtColor(src1_mask, cv2.COLOR_GRAY2BGR)#change mask to a 3 channel image
+		//	mask_out = cv2.subtract(src1_mask, src1)
+		//	mask_out = cv2.subtract(src1_mask, mask_out)
+	}
+}
+
+void PictureImprovement::findNearest(float pixelValue, cv::Point& nearestPoint, PointSet_t& contEdge, int& m, int& n)
+{
+	if (contEdge.size() == 0)
+		return;
+	PointSet_t::const_iterator nearestPointIt;
+	int mask[8][2]{
+		{-1, -1}, {-1, 0}, {-1, 1},
+		{ 0, -1},          { 0, 1},
+		{ 1, -1}, { 1, 0}, { 1, 1} };
+	for (auto i = 0; i <= neighborhoodThreshold; i++) {
+		for (auto j = 0; j <= neighborhoodThreshold; j++) {
+			if (pixelValue - (i + j - 2) * edgeThreshold < 0.0)
+				break;
+			for (auto mul : mask) {
+				nearestPointIt = contEdge.find(Point(m + i * mul[0], n + j * mul[1]));
+				if (nearestPointIt != contEdge.end()) {
+					nearestPoint = *nearestPointIt;
+					return;
+				}
+			}
+		}
+	}
+}
+
+int PictureImprovement::MergePointsInSets(cv::Mat& edges, int& m, int& n, std::vector<PointSet_t>& res)
+{
+	auto numMerges{ 0 };
+	if (edges.at<float>(m, n) > edgeThreshold) {
+		auto mergeThem{ -1 };
+		for (auto i = 0; auto & contEdge : res) {
+			auto pointIt = contEdge.find(Point{ m, n });
+			if (pointIt != contEdge.end()) {
+				if (mergeThem != -1) {
+					contEdge.insert(res[mergeThem].begin(), res[mergeThem].end());
+					res[mergeThem].clear();
+					numMerges++;
+				}
+				mergeThem = i;
+			}
+			i++;
+		}
+	}
+	return numMerges;
+}
+
+void PictureImprovement::InsertPointInSets(cv::Mat& edges, int& m, int& n, std::vector<PointSet_t>& res)
+{
+	//auto mergeThem{ -1 }; // Two vectors with same endpoint?
+	auto currentPixel = edges.at<float>(m, n);
+	auto added{ false };
+	for (auto i = 0; auto& contEdge : res) {
+		Point nearestPoint{ -neighborhoodThreshold - 1, -neighborhoodThreshold -1 }; // intialized outside neighbourhood
+		findNearest(currentPixel, nearestPoint, contEdge, m, n);
+
+		//if (mergeThem == -1) {
+			// Is that last point in neigborhood of current edge:
+			if (abs(m - nearestPoint.x) <= neighborhoodThreshold && abs(n - nearestPoint.y) <= neighborhoodThreshold) {
+				if (auto xdiff = abs(m - nearestPoint.x), ydiff = abs(n - nearestPoint.y); xdiff > 1 || ydiff > 1) {
+					// Points to fill the gap are needed:
+					while (xdiff > 1 || ydiff > 1) {
+						if (xdiff == 1) {
+							if (nearestPoint.y > n) {
+								nearestPoint.y--;
+							}
+							else {
+								nearestPoint.y++;
+							}
+							ydiff--;
+						}
+						else if (ydiff == 1) {
+							if (nearestPoint.x > m) {
+								nearestPoint.x--;
+							}
+							else {
+								nearestPoint.x++;
+							}
+							xdiff--;
+						}
+						else {
+							if (nearestPoint.y > n) {
+								nearestPoint.y--;
+							}
+							else {
+								nearestPoint.y++;
+							}
+							if (nearestPoint.x > m) {
+								nearestPoint.x--;
+							}
+							else {
+								nearestPoint.x++;
+							}
+							xdiff--; ydiff--;
+						}
+						contEdge.insert(nearestPoint);
+					}
+				}
+				contEdge.insert(Point( m, n ));
+				//mergeThem = i;
+			}
+		//}
+		//else {
+		//	// Merge?
+		//	if (abs(m - nearestPoint.x) <= 1 && abs(n - nearestPoint.y) <= 1) {
+		//		contEdge.insert(res[mergeThem].begin(), res[mergeThem].end());
+		//		res[mergeThem].clear();
+		//		mergeThem = i;
+		//	}
+		//}
+		i++;
+	}
+	if (!added) {
+		res.emplace_back(PointSet_t{ Point2i(m,n) });
+	}
+}
+
+std::vector<PictureImprovement::PointSet_t> PictureImprovement::continuousEdges(cv::Mat& edges)
+{
+	vector<PointSet_t> res;
+	vector<pair<int, int>> lightPoints;
+
+	// Let's build up a filled ellipse with a certain distance to edges' borders 
+	// There we don't expect the face's edges
+	Mat filledEllipseMask = Mat::zeros(size(edges), CV_8UC1);
+
+	Point center(edges.size().width / 2 + 1, edges.size().height / 2);
+	ellipse(filledEllipseMask, center, Size(edges.size().width / 2.7, edges.size().height / 2.6), 0, 0, 360, Scalar(255), -1); // -1 to fill
+
+	// look forward in both directions
+	for (auto m = 0; m < edges.size().height; m++) {
+		for (auto n = 0; n < edges.size().width; n++) {
+			if (filledEllipseMask.at<unsigned char>(m, n) > 0)
+				continue;
+			if (edges.at<float>(m, n) > 0.0f) {
+				lightPoints.emplace_back(m, n);
+				InsertPointInSets(edges, m, n, res);
+			}
+		}
+	}
+	std::erase_if(res, [](auto& contEdge) { return contEdge.size() == 0; });
+
+	auto numMerges{ 0 };
+	// look forward in rows and backward in columns
+	for (auto& p : lightPoints){
+		numMerges += MergePointsInSets(edges, p.first, p.second, res);
+	}
+	cout << "1. Merges: " << numMerges << "\n";
+	std::erase_if(res, [](auto& contEdge) { return contEdge.size() == 0; });
+
+	numMerges = 0;
+	for (auto& p : lightPoints) {
+		InsertPointInSets(edges, p.first, p.second, res);
+	}
+	for (auto& p : lightPoints) {
+		numMerges += MergePointsInSets(edges, p.first, p.second, res);
+	}
+	cout << "2. Merges: " << numMerges << "\n";
+	std::erase_if(res, [](auto& contEdge) { return contEdge.size() == 0; });
+
+	numMerges = 0;
+	for (auto& p : lightPoints) {
+		numMerges += MergePointsInSets(edges, p.first, p.second, res);
+	}
+	cout << "3. Merges: " << numMerges << "\n";
+	return res;
+}
+
 void PictureImprovement::redEyeRemoving(Mat& ioMat)
 {
-	CascadeClassifier face_cascade;
-	CascadeClassifier eyes_cascade;
-
-	String face_cascade_name = "models/haarcascade_frontalface_alt.xml";
-	String eyes_cascade_name = "models/haarcascade_eye_tree_eyeglasses.xml";
-
-	//-- 1. Load the cascades
-	if (!face_cascade.load(face_cascade_name))
-	{
-		cout << "--(!)Error loading face cascade\n";
-		return;
-	};
-	if (!eyes_cascade.load(eyes_cascade_name))
-	{
-		cout << "--(!)Error loading eyes cascade\n";
-		return;
-	};
 	Mat frame_gray;
 	cvtColor(ioMat, frame_gray, COLOR_BGR2GRAY);
 	equalizeHist(frame_gray, frame_gray);
@@ -51,10 +394,12 @@ void PictureImprovement::redEyeRemoving(Mat& ioMat)
 	for (size_t i = 0; i < faces.size(); i++)
 	{
 		Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);
-		if (showCircles)
+		if (showCircles) {
 			ellipse(ioMat, center, Size(faces[i].width / 2, faces[i].height / 2), 0, 0, 360, Scalar(255, 0, 255), 4);
+			rectangle(ioMat, faces[i], Scalar(255, 255, 255), 4);
+		}
 		Mat faceROI = frame_gray(faces[i]);
-		equalizeHist(faceROI, faceROI); // Just a try to get it lighter
+		CropFace(i, faceROI, ioMat, faces);
 		//-- In each face, detect eyes
 		std::vector<Rect> eyes;
 		eyes_cascade.detectMultiScale(faceROI, eyes, 1.1, 3, CASCADE_SCALE_IMAGE);
@@ -272,6 +617,25 @@ void PictureImprovement::erode(cv::Mat& ioMat)
 			Point(kernelSize, kernelSize));
 		cv::erode(ioMat, ioMat, element);
 	}
+}
+
+PictureImprovement::PictureImprovement()
+{
+	String face_cascade_name = "models/haarcascade_frontalface_alt.xml";
+	String eyes_cascade_name = "models/haarcascade_eye_tree_eyeglasses.xml";
+
+	//-- 1. Load the cascades
+	if (!face_cascade.load(face_cascade_name))
+	{
+		cout << "--(!)Error loading face cascade\n";
+		return;
+	};
+	if (!eyes_cascade.load(eyes_cascade_name))
+	{
+		cout << "--(!)Error loading eyes cascade\n";
+		return;
+	};
+	pDollar = createStructuredEdgeDetection("models/model.yml");
 }
 
 void PictureImprovement::elementary(std::string& s)

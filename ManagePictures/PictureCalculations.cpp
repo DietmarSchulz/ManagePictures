@@ -46,8 +46,7 @@ void PictureCalculations::AddPicture(std::string& firstPic)
 		}
 		else {
 			cout << "Hä?";
-			destroyAllWindows();
-			return;
+			resize(firstImg, firstImg, secondImg.size());
 		}
 	}
 

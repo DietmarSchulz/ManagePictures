@@ -274,7 +274,7 @@ void PictureAnalyser::timeSortedUniques()
 
 	chrono::system_clock::time_point start;
 	filePathVector_t paths;
-	filesystem::recursive_directory_iterator dirs("c:/unique_pics");
+	filesystem::recursive_directory_iterator dirs("c:/KameraUploads");
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
 	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 
@@ -334,8 +334,30 @@ void PictureAnalyser::timeSortedUniques()
 			timeSortedPics << imgPaths[i] << ";"s;
 			timeSortedPics << st.wYear << "-" << st.wMonth << "-" << st.wDay << "-" << st.wHour << ":"s << st.wMinute << ":"s << st.wSecond << "." << st.wMilliseconds << "\n";
 			if (picsDays[dateStr.str()].contains(imgPaths[i].filename().generic_string())) {
-				//cout << "Duplicate in: " << dateStr.str() << " : " << imgPaths[i].filename().generic_string() << "\n";
-				src2dst[imgPaths[i]] = dstPath / (imgPaths[i].filename().stem().generic_string() + "_1"s + imgPaths[i].filename().extension().generic_string());
+				cout << "Duplicate in: " << dateStr.str() << " : " << imgPaths[i].filename().generic_string() << "\n";
+				Mat m1, m2;
+				m1 = imread(imgPaths[i].generic_string());
+				m2 = imread((dstPath / imgPaths[i].filename().generic_string()).generic_string());
+				if (m1.empty() || m2.empty()) {
+					cout << "Could not read " + imgPaths[i].filename().generic_string() + "\n";
+					return;
+				}
+				Mat difference = m1 - m2;
+				vector<Mat> mats;
+				split(difference, mats);
+				bool equal{ true };
+				for (auto& m : mats) {
+					if (countNonZero(m) != 0) {
+						equal = false;
+						break;
+					}
+				}
+				if (equal) {
+					cout << "\tbut are identical\n";
+				}
+				else {
+					src2dst[imgPaths[i]] = dstPath / (imgPaths[i].filename().stem().generic_string() + "_1"s + imgPaths[i].filename().extension().generic_string());
+				}
 			}
 			else {
 				picsDays[dateStr.str()].insert(imgPaths[i].filename().generic_string());
