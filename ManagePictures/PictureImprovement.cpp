@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <array>
+#include <execution>
 #include <QtWidgets/qapplication.h>
 #include <QtWidgets/qpushbutton.h>
 #include <QtWidgets/qfiledialog.h>
@@ -136,7 +137,7 @@ void PictureImprovement::CropFace(const size_t& i, cv::Mat& faceROI, cv::Mat& io
 		Mat longestEdge = Mat::zeros(size(edge_nms), CV_8UC1);
 		auto numPoints{ 0 };
 		auto k{ 0 };
-		while (k < contEdges.size() && numPoints < 2 * edge_nms.size().height +  edge_nms.size().width) {
+		while (k < contEdges.size() && numPoints < 2 * edge_nms.size().height +  0.8f * edge_nms.size().width) {
 			for (auto p : contEdges[k]) {
 				longestEdge.at<unsigned char>(p.x, p.y) = 255;
 			}
@@ -264,69 +265,57 @@ int PictureImprovement::MergePointsInSets(cv::Mat& edges, int& m, int& n, std::v
 
 void PictureImprovement::InsertPointInSets(cv::Mat& edges, int& m, int& n, std::vector<PointSet_t>& res)
 {
-	//auto mergeThem{ -1 }; // Two vectors with same endpoint?
 	auto currentPixel = edges.at<float>(m, n);
 	auto added{ false };
-	for (auto i = 0; auto& contEdge : res) {
-		Point nearestPoint{ -neighborhoodThreshold - 1, -neighborhoodThreshold -1 }; // intialized outside neighbourhood
+	for_each(execution::par, res.begin(), res.end(), [&added, &m, &n, &currentPixel, this](auto& contEdge) {
+		Point nearestPoint{ -neighborhoodThreshold - 1, -neighborhoodThreshold - 1 }; // intialized outside neighbourhood
 		findNearest(currentPixel, nearestPoint, contEdge, m, n);
 
-		//if (mergeThem == -1) {
-			// Is that last point in neigborhood of current edge:
-			if (abs(m - nearestPoint.x) <= neighborhoodThreshold && abs(n - nearestPoint.y) <= neighborhoodThreshold) {
-				if (auto xdiff = abs(m - nearestPoint.x), ydiff = abs(n - nearestPoint.y); xdiff > 1 || ydiff > 1) {
-					// Points to fill the gap are needed:
-					while (xdiff > 1 || ydiff > 1) {
-						if (xdiff == 1) {
-							if (nearestPoint.y > n) {
-								nearestPoint.y--;
-							}
-							else {
-								nearestPoint.y++;
-							}
-							ydiff--;
-						}
-						else if (ydiff == 1) {
-							if (nearestPoint.x > m) {
-								nearestPoint.x--;
-							}
-							else {
-								nearestPoint.x++;
-							}
-							xdiff--;
+		// Is that last point in neigborhood of current edge:
+		if (abs(m - nearestPoint.x) <= neighborhoodThreshold && abs(n - nearestPoint.y) <= neighborhoodThreshold) {
+			if (auto xdiff = abs(m - nearestPoint.x), ydiff = abs(n - nearestPoint.y); xdiff > 1 || ydiff > 1) {
+				// Points to fill the gap are needed:
+				while (xdiff > 1 || ydiff > 1) {
+					if (xdiff == 1) {
+						if (nearestPoint.y > n) {
+							nearestPoint.y--;
 						}
 						else {
-							if (nearestPoint.y > n) {
-								nearestPoint.y--;
-							}
-							else {
-								nearestPoint.y++;
-							}
-							if (nearestPoint.x > m) {
-								nearestPoint.x--;
-							}
-							else {
-								nearestPoint.x++;
-							}
-							xdiff--; ydiff--;
+							nearestPoint.y++;
 						}
-						contEdge.insert(nearestPoint);
+						ydiff--;
 					}
+					else if (ydiff == 1) {
+						if (nearestPoint.x > m) {
+							nearestPoint.x--;
+						}
+						else {
+							nearestPoint.x++;
+						}
+						xdiff--;
+					}
+					else {
+						if (nearestPoint.y > n) {
+							nearestPoint.y--;
+						}
+						else {
+							nearestPoint.y++;
+						}
+						if (nearestPoint.x > m) {
+							nearestPoint.x--;
+						}
+						else {
+							nearestPoint.x++;
+						}
+						xdiff--; ydiff--;
+					}
+					contEdge.insert(nearestPoint);
 				}
-				contEdge.insert(Point( m, n ));
-				//mergeThem = i;
 			}
-		//}
-		//else {
-		//	// Merge?
-		//	if (abs(m - nearestPoint.x) <= 1 && abs(n - nearestPoint.y) <= 1) {
-		//		contEdge.insert(res[mergeThem].begin(), res[mergeThem].end());
-		//		res[mergeThem].clear();
-		//		mergeThem = i;
-		//	}
-		//}
-		i++;
-	}
+			contEdge.insert(Point(m, n));
+			added = true;
+		}
+	});
 	if (!added) {
 		res.emplace_back(PointSet_t{ Point2i(m,n) });
 	}
@@ -355,7 +344,7 @@ std::vector<PictureImprovement::PointSet_t> PictureImprovement::continuousEdges(
 			}
 		}
 	}
-	std::erase_if(res, [](auto& contEdge) { return contEdge.size() == 0; });
+	cout << "1. Einsammeln fertig mit " << res.size() << " sets\n";
 
 	auto numMerges{ 0 };
 	// look forward in rows and backward in columns
@@ -365,21 +354,6 @@ std::vector<PictureImprovement::PointSet_t> PictureImprovement::continuousEdges(
 	cout << "1. Merges: " << numMerges << "\n";
 	std::erase_if(res, [](auto& contEdge) { return contEdge.size() == 0; });
 
-	numMerges = 0;
-	for (auto& p : lightPoints) {
-		InsertPointInSets(edges, p.first, p.second, res);
-	}
-	for (auto& p : lightPoints) {
-		numMerges += MergePointsInSets(edges, p.first, p.second, res);
-	}
-	cout << "2. Merges: " << numMerges << "\n";
-	std::erase_if(res, [](auto& contEdge) { return contEdge.size() == 0; });
-
-	numMerges = 0;
-	for (auto& p : lightPoints) {
-		numMerges += MergePointsInSets(edges, p.first, p.second, res);
-	}
-	cout << "3. Merges: " << numMerges << "\n";
 	return res;
 }
 
