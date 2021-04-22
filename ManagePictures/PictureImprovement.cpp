@@ -25,6 +25,53 @@ void PictureImprovement::fillHoles(cv::Mat& mask)
 	mask = (mask2 | mask);
 }
 
+void PictureImprovement::CreatebitMaskForLongestEdges(cv::Mat& faceBitMaskLongestEdge, cv::Mat& edges, int horizontalMid, cv::Mat& longestEdge)
+{
+	// Initialize with ellipse:
+	Point center(faceBitMaskLongestEdge.size().width / 2 + 1, faceBitMaskLongestEdge.size().height / 2);
+	ellipse(faceBitMaskLongestEdge, center, Size(edges.size().width / 2.7, edges.size().height / 2.6), 0, 0, 360, Scalar(255), -1); // -1 to fill
+
+	// from left to mid in all rows
+	for (auto m = 0; m < faceBitMaskLongestEdge.size().height; m++) {
+		auto edgeFound = false;
+		for (auto n = 0; n <= horizontalMid; n++) {
+			if (longestEdge.at<unsigned char>(m, n) > 0) {
+				edgeFound = true;
+			}
+			if (edgeFound) {
+				faceBitMaskLongestEdge.at<unsigned char>(m, n) = 255;
+			}
+		}
+	}
+
+	// from right to mid in all rows
+	for (auto m = 0; m < faceBitMaskLongestEdge.size().height; m++) {
+		auto edgeFound = false;
+		for (auto n = faceBitMaskLongestEdge.size().width - 1; n >= horizontalMid; n--) {
+			if (longestEdge.at<unsigned char>(m, n) > 0) {
+				edgeFound = true;
+			}
+			if (edgeFound) {
+				faceBitMaskLongestEdge.at<unsigned char>(m, n) = 255;
+			}
+		}
+	}
+	auto verticalMid = faceBitMaskLongestEdge.size().height / 2 + 1;
+	// from vertical Mid to Top
+	for (auto n = 0; n < faceBitMaskLongestEdge.size().width; n++) {
+		auto edgeFound = false;
+		for (auto m = verticalMid; m >= 0; m--) {
+			if (longestEdge.at<unsigned char>(m, n) > 0) {
+				edgeFound = true;
+			}
+			if (!edgeFound) {
+				// After the edge we change nothing! But else: We propagate last line in up direction
+				faceBitMaskLongestEdge.at<unsigned char>(m, n) = faceBitMaskLongestEdge.at<unsigned char>(m + 1, n);
+			}
+		}
+	}
+}
+
 void PictureImprovement::CropFace(const size_t& i, cv::Mat& faceROI, cv::Mat& ioMat, vector<Rect>& faces)
 {
 	string plainGray{ "Gesicht ohne eq " + to_string(i) };
@@ -155,66 +202,19 @@ void PictureImprovement::CropFace(const size_t& i, cv::Mat& faceROI, cv::Mat& io
 		// Bitmaks from longest edge:
 		Mat faceBitMaskLongestEdge = Mat::zeros(size(longestEdge), CV_8UC1);
 
-		// Initialize with ellipse:
-		Point center(faceBitMaskLongestEdge.size().width / 2 + 1, faceBitMaskLongestEdge.size().height / 2);
-		ellipse(faceBitMaskLongestEdge, center, Size(edges.size().width / 2.7, edges.size().height / 2.6), 0, 0, 360, Scalar(255), -1); // -1 to fill
-
-
-		// from left to mid in all rows
-		for (auto m = 0; m < faceBitMaskLongestEdge.size().height; m++) {
-			auto edgeFound = false;
-			for (auto n = 0; n <= horizontalMid; n++) {
-				if (longestEdge.at<unsigned char>(m, n) > 0) {
-					edgeFound = true;
-				}
-				if (edgeFound) {
-					faceBitMaskLongestEdge.at<unsigned char>(m, n) = 255;
-				}
-			}
-		}
-
-		// from right to mid in all rows
-		for (auto m = 0; m < faceBitMaskLongestEdge.size().height; m++) {
-			auto edgeFound = false;
-			for (auto n = faceBitMaskLongestEdge.size().width - 1; n >= horizontalMid; n--) {
-				if (longestEdge.at<unsigned char>(m, n) > 0) {
-					edgeFound = true;
-				}
-				if (edgeFound) {
-					faceBitMaskLongestEdge.at<unsigned char>(m, n) = 255;
-				}
-			}
-		}
-		auto verticalMid = faceBitMaskLongestEdge.size().height / 2 + 1;
-		// from vertical Mid to Top
-		for (auto n = 0; n < faceBitMaskLongestEdge.size().width; n++) {
-			auto edgeFound = false;
-			for (auto m = verticalMid; m >= 0; m--) {
-				if (longestEdge.at<unsigned char>(m, n) > 0) {
-					edgeFound = true;
-				}
-				if (!edgeFound) {
-					// After the edge we change nothing! But else: We propagate last line in up direction
-					faceBitMaskLongestEdge.at<unsigned char>(m, n) = faceBitMaskLongestEdge.at<unsigned char>(m + 1, n);
-				}
-			}
-		}
+		CreatebitMaskForLongestEdges(faceBitMaskLongestEdge, edges, horizontalMid, longestEdge);
 
 		imshow(bitmaskLongestEdgeWindowName, faceBitMaskLongestEdge);
 
-		// To bild up big bitmask of faces:
-		//Mat bigImage = imread("redSquare.png", -1);
-		//Mat lilImage = imread("blueSquare.png", -1);
+		Mat bgrBitMask;
+		cvtColor(faceBitMaskLongestEdge, bgrBitMask, COLOR_GRAY2BGR);
 
-		//Mat insetImage(bigImage, Rect(70, 70, 100, 100));
-		//lilImage.copyTo(insetImage);
+		string faceWindow { "Gesicht nach laengster Kannte ausgeschnitten " + to_string(i) }; 
+		Mat cutFace;
+		bitwise_and(ioMat(faces[i]), bgrBitMask, colorFace);
 
-		//imshow("Overlay Image", bigImage);
-
-		// To crop faces from images using bitmasks:
-		// src1_mask = cv2.cvtColor(src1_mask, cv2.COLOR_GRAY2BGR)#change mask to a 3 channel image
-		//	mask_out = cv2.subtract(src1_mask, src1)
-		//	mask_out = cv2.subtract(src1_mask, mask_out)
+		namedWindow(faceWindow, WINDOW_NORMAL);
+		imshow(faceWindow, colorFace);
 	}
 }
 
@@ -390,12 +390,14 @@ void PictureImprovement::redEyeRemoving(Mat& ioMat)
 			currEye.y += faces[i].y;
 			Mat eye = ioMat(currEye);
 
-			// Split eye image into 3 channels.
+			// Split eye image into 3 channels. 
 			vector<Mat>bgr(3);
 			split(eye, bgr);
 
 			// Simple red eye detector
-			Mat mask = ((bgr[2] > 150) & (bgr[2] > (bgr[1] + bgr[0]))) | ((bgr[2] > 240) & (bgr[0] < 180) & (bgr[1] < 180));
+			Mat mask = bgr[0] < 0;
+			circle(mask, Point(eyes[j].width / 2, eyes[j].height / 2), radius / 3.0, Scalar(255, 255, 255, 255), -1);
+			mask = mask & (((bgr[2] > 150) & (bgr[2] > (bgr[1] + bgr[0]))) | ((bgr[2] > 240) & (bgr[0] < 180) & (bgr[1] < 180)));
 			fillHoles(mask);
 			dilate(mask, mask, Mat(), Point(-1, -1), 3, 1, 1);
 

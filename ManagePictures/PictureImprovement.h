@@ -44,6 +44,7 @@ private:
 	cv::Ptr<cv::ximgproc::StructuredEdgeDetection> pDollar;
 
 	static void fillHoles(cv::Mat& mask);
+	void CreatebitMaskForLongestEdges(cv::Mat& faceBitMaskLongestEdge, cv::Mat& edges, int horizontalMid, cv::Mat& longestEdge);
 	void CropFace(const size_t& i, cv::Mat& faceROI, cv::Mat& ioMat, std::vector<cv::Rect>& faces);
 	//void findNearest(cv::Point& nearestPoint, PointSet_t& contEdge, int& m, int& n);
 	void findNearest(float pixelValue, cv::Point& nearestPoint, PointSet_t& contEdge, int& m, int& n);
