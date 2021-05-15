@@ -11,6 +11,7 @@
 #include "CameraUsage.h"
 #include "PictureCalculations.h"
 #include "TextProcessing.h"
+#include "viz3dPics.h"
 
 class ControlerWindow : public QWidget
 {
@@ -29,6 +30,7 @@ private:
 	CameraUsage cam;
 	PictureCalculations calcPics;
 	TextProcessing textProc;
+	viz3dPics viz3d;
 public:
 	explicit ControlerWindow(QWidget* parent = 0) : QWidget(parent) {
 		// Set size of the window
@@ -68,6 +70,7 @@ public:
 			"Random forests",
 			"Homography",
 			"Matches",
+			"3d Generation",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -146,6 +149,9 @@ public slots:
 			return;
 		case 15:
 			calcPics.Matches(currFileName);
+			return;
+		case 16:
+			viz3d.showPics(currFileName);
 			return;
 		}
 	};
