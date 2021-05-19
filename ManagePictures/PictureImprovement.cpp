@@ -424,6 +424,62 @@ void PictureImprovement::redEyeRemoving(Mat& ioMat)
 	}
 }
 
+void PictureImprovement::ExtractFaces(cv::Mat& ioMat)
+{
+	Mat frame_gray;
+	cvtColor(ioMat, frame_gray, COLOR_BGR2GRAY);
+	equalizeHist(frame_gray, frame_gray);
+	//-- Detect faces
+	std::vector<Rect> faces;
+	face_cascade.detectMultiScale(frame_gray, faces, 1.1, 3);
+	for (auto i = 0; i < faces.size(); i++)
+	{
+		if (faces[i].width < 100 && faces[i].height < 100)
+			continue; // Discard too small objects
+		Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);
+		if (showCircles) {
+			ellipse(ioMat, center, Size(faces[i].width / 2, faces[i].height / 2), 0, 0, 360, Scalar(255, 0, 255), 4);
+			rectangle(ioMat, faces[i], Scalar(255, 255, 255), 4);
+		}
+		Mat faceROI = frame_gray(faces[i]);
+		string grayFaceRegion = "Image containing Face " + to_string(i);
+		namedWindow(grayFaceRegion, WINDOW_NORMAL);
+		moveWindow(grayFaceRegion, i * 400, 0);
+		imshow(grayFaceRegion, faceROI);
+
+		// the models (internally used)
+		Mat bgModel, fgModel;
+		// segmentation result
+		Mat result; // segmentation (4 possible values)
+
+		// GrabCut segmentation
+		int border = faces[i].width / 4;
+		Rect rectangle(faces[i].x - border, faces[i].y - border, faces[i].width + 2 * border, faces[i].height + 2 * border);
+		grabCut(ioMat,    // input image
+			result,   // segmentation result
+			rectangle,// rectangle containing foreground 
+			bgModel, fgModel, // models
+			5,        // number of iterations
+			cv::GC_INIT_WITH_RECT); // use rectangle
+
+		// Get the pixels marked as likely foreground
+		compare(result, cv::GC_PR_FGD, result, cv::CMP_EQ);
+		// or:
+		//	result= result&1;
+
+		// create a white image
+		cv::Mat foreground(ioMat.size(), CV_8UC3,
+			cv::Scalar(255, 255, 255));
+
+		ioMat.copyTo(foreground, result); // bg pixels not copied
+
+		string faceString = "Face " + to_string(i);
+		namedWindow(faceString, WINDOW_NORMAL);
+		moveWindow(faceString, i * 400, 400);
+		imshow(faceString, foreground);
+	}
+}
+
 void PictureImprovement::drawPred(int classId, float conf, int left, int top, int right, int bottom, Mat& frame, vector<string>& classes, size_t index)
 {
 	if (conf > 1.0) {
@@ -632,6 +688,7 @@ void PictureImprovement::elementary(std::string& s)
 	int kernelSize{ 3 };
 	int kernelStep{ 1 };
 	bool doRecognition{ false };
+	bool doExtractFaces{ false };
 
 	// Gamma brightness:
 	int gammaI = 100;
@@ -704,6 +761,8 @@ void PictureImprovement::elementary(std::string& s)
 		}
 		if (doCascade)
 			redEyeRemoving(imageDestination);
+		if (doExtractFaces)
+			ExtractFaces(imageDestination);
 		if (doRecognition) {
 			preprocess(imageDestination, net, Size(inpWidth, inpHeight), scale, mean, swapRB);
 			std::vector<Mat> outs;
@@ -765,6 +824,15 @@ void PictureImprovement::elementary(std::string& s)
 		doGammaLUT();
 	};
 	createButton("Remove red eyes", callbackForRedEyes, (void*)&checkCascade, QT_CHECKBOX | QT_NEW_BUTTONBAR, false);
+
+	ButtonCallback callbackForExtractFaces = [](int state, void* userdata) {
+		(*(VoidAction*)userdata)();
+	};
+	VoidAction checkExtractFaces = [&]() {
+		doExtractFaces = !doExtractFaces;
+		doGammaLUT();
+	};
+	createButton("Extract faces", callbackForExtractFaces, (void*)&checkExtractFaces, QT_CHECKBOX | QT_NEW_BUTTONBAR, false);
 
 	ButtonCallback callbackForCircles = [](int state, void* userdata) {
 		(*(VoidAction*)userdata)();

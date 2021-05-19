@@ -55,6 +55,10 @@ void viz3dPics::showPics(std::string_view imgName)
 
 	// Read image
 	cv::Mat image = cv::imread(imgName.data());
+	if (image.empty()) {
+		std::cout << "bild aussuchen!\n";
+		return;
+	}
 	// Draw image points
 	for (int i = 0; i < 8; i++) {
 		cv::circle(image, imagePoints[i], 3, cv::Scalar(0, 0, 0), 2);
@@ -64,6 +68,7 @@ void viz3dPics::showPics(std::string_view imgName)
 
 	// Create a viz window
 	cv::viz::Viz3d visualizer("Viz window");
+	visualizer.showWidget("Coordinate Widget", viz::WCoordinateSystem());
 	visualizer.setBackgroundColor(cv::viz::Color::white());
 
 	/// Construct the scene

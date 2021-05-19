@@ -54,6 +54,7 @@ private:
 	//std::vector<PointSet_t> continuousEdges(cv::Mat& edges);
 	std::vector<PointSet_t> continuousEdges(cv::Mat& edges);
 	void redEyeRemoving(cv::Mat& ioMat);
+	void ExtractFaces(cv::Mat& ioMat);
 	void drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame, std::vector<std::string>& classes, size_t index);
 	cv::dnn::Net prepareObjectRecognition(std::vector<std::string>& classes);
 	inline void preprocess(const cv::Mat& frame, cv::dnn::Net& net, cv::Size inpSize, float scale,
