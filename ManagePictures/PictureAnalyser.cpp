@@ -2,13 +2,19 @@
 #include <regex>
 #include <algorithm>
 #include <execution>
+#include <TinyEXIF.h>
 #include <fstream>
 #include <chrono>
 #include <iomanip>
 
+//#include <exiv2/exiv2.hpp> 
+
 #include <Windows.h>
 #include <minwinbase.h>
 #include <timezoneapi.h>
+#include <QtCore/qstring.h>
+#include <QtWidgets/qfiledialog.h>
+
 
 using namespace std;
 using namespace cv;
@@ -68,6 +74,7 @@ void PictureAnalyser::findIdentical(directorySet_t& pics)
 	//char key = waitKey();
 	//destroyAllWindows();
 }
+
 #undef max
 void PictureAnalyser::analyse(string_view s)
 {
@@ -508,6 +515,168 @@ void PictureAnalyser::setYearOfFolder(string& folderPath)
 			st.wYear = newYear;
 			res = SystemTimeToFileTime(&st, (FILETIME*)&t);
 			filesystem::last_write_time(p, t);
+		}
+	}
+}
+
+std::string PictureAnalyser::getPhotoTime(std::string path)
+{
+	//Exiv2::Image::AutoPtr image = Exiv2::ImageFactory::open(argv[1]);
+	//image->readMetadata();
+	//Exiv2::ExifData& exifData = image->exifData();
+	//if (exifData.empty()) {
+	//	std::string error(argv[1]);
+	//	error += ": No Exif data found in the file";
+	//	throw Exiv2::Error(1, error);
+	//}
+	//Exiv2::ExifData::const_iterator end = exifData.end();
+	//for (Exiv2::ExifData::const_iterator i = exifData.begin(); i != end; ++i) {
+	//	const char* tn = i->typeName();
+	//	std::cout << std::setw(44) << std::setfill(' ') << std::left
+	//		<< i->key() << " "
+	//		<< "0x" << std::setw(4) << std::setfill('0') << std::right
+	//		<< std::hex << i->tag() << " "
+	//		<< std::setw(9) << std::setfill(' ') << std::left
+	//		<< (tn ? tn : "Unknown") << " "
+	//		<< std::dec << std::setw(3)
+	//		<< std::setfill(' ') << std::right
+	//		<< i->count() << "  "
+	//		<< std::dec << i->value()
+	//		<< "\n";
+	//}
+	// open a stream to read just the necessary parts of the image file
+	std::ifstream istream(path, std::ifstream::binary);
+
+	istream.unsetf(std::ios::skipws);
+	istream.seekg(0, std::ios::end);
+	streamsize len = istream.tellg();
+	istream.seekg(0, std::ios::beg);
+	vector<unsigned char> data;
+	data.reserve(len);
+	data.insert(data.begin(),
+		std::istream_iterator<unsigned char>(istream),
+		std::istream_iterator<unsigned char>());
+
+	// parse image EXIF and XMP metadata
+	TinyEXIF::EXIFInfo imageEXIF(data.data(), len);
+	if (imageEXIF.Fields)
+		std::cout
+		<< "Image Description " << imageEXIF.ImageDescription << "\n"
+		<< "Image Resolution " << imageEXIF.ImageWidth << "x" << imageEXIF.ImageHeight << " pixels\n"
+		<< "Camera Model " << imageEXIF.Make << " - " << imageEXIF.Model << "\n"
+		<< "Focal Length " << imageEXIF.FocalLength << " mm\n"
+		<< "Photo date " << imageEXIF.DateTimeOriginal << std::endl;
+	return imageEXIF.DateTimeOriginal;
+}
+
+void PictureAnalyser::addOnlineMonth()
+{
+	using namespace std::literals;
+
+	QString dummy = R"(\\fritz.box\FRITZ.NAS\Onlinespeicher\Kamera Uploads)";
+	string dirToAdd = QFileDialog::getExistingDirectory(nullptr, "Open Folder", dummy).toStdString();
+
+	filePathVector_t paths;
+	filesystem::recursive_directory_iterator dirs(dirToAdd);
+	copy(begin(dirs), end(dirs), std::back_inserter(paths));
+	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex dateReg(R"((\d\d\d\d):(\d\d):(\d\d)\s(\d\d):(\d\d):(\d\d))", wregex::flag_type::ECMAScript | wregex::flag_type::icase); // like 2021:07:24 17:06:22
+
+	filePathVector_t imgPaths;
+	ticks2indices_t fileTime2indices;
+	for (auto i = 0; auto & p : paths) {
+		auto t = filesystem::last_write_time(p);
+		string photoTakenAt = getPhotoTime(p.generic_string());
+
+		smatch m; SYSTEMTIME st;
+		if (regex_match(photoTakenAt, m, dateReg)) {
+			st.wYear = stoi(m[1].str());
+			st.wMonth = stoi(m[2].str());
+			st.wDay = stoi(m[3].str());
+
+			st.wHour = stoi(m[4].str());
+			st.wMinute = stoi(m[5].str());
+			st.wSecond = stoi(m[6].str());
+			st.wMilliseconds = 0;
+			auto res = SystemTimeToFileTime(&st, (FILETIME*)&t);
+			if (!res)
+				return;
+		}
+		else {
+			auto res = FileTimeToSystemTime((FILETIME*)&t, &st);
+		}
+		if (is_regular_file(p) && regex_match(p.extension().generic_string(), extReg)) {
+			imgPaths.emplace_back(p);
+			fileTime2indices[t.time_since_epoch().count()].emplace_back(i);
+			i++;
+		}
+	}
+	map<string, set<string>> picsDays;
+	map<filesystem::path, filesystem::path> src2dst;
+
+	filesystem::path dstRoot("c:/sorted_pics");
+
+	// Store the sorted map:
+	ofstream timeSortedPics("SinglePicsSortedbyModificationTS.txt");
+
+	// Store Copy list
+	ofstream copyList("SingleCopytoSortedPics.txt");
+
+	for (auto& tip : fileTime2indices) {
+		SYSTEMTIME st; auto res = FileTimeToSystemTime((FILETIME*)&tip.first, &st);
+		stringstream dateStr;
+		dateStr << st.wYear << "-" << st.wMonth << "-" << st.wDay;
+
+		filesystem::path dstPath = dstRoot / to_string(st.wYear) / to_string(st.wMonth) / to_string(st.wDay);
+		for (auto i : tip.second) {
+			timeSortedPics << tip.first << ";"s;
+			timeSortedPics << imgPaths[i] << ";"s;
+			timeSortedPics << st.wYear << "-" << st.wMonth << "-" << st.wDay << "-" << st.wHour << ":"s << st.wMinute << ":"s << st.wSecond << "." << st.wMilliseconds << "\n";
+			if (picsDays[dateStr.str()].contains(imgPaths[i].filename().generic_string())) {
+				cout << "Duplicate in: " << dateStr.str() << " : " << imgPaths[i].filename().generic_string() << "\n";
+				Mat m1, m2;
+				m1 = imread(imgPaths[i].generic_string());
+				m2 = imread((dstPath / imgPaths[i].filename().generic_string()).generic_string());
+				if (m1.empty() || m2.empty()) {
+					cout << "Could not read " + imgPaths[i].filename().generic_string() + "\n";
+					return;
+				}
+				Mat difference = m1 - m2;
+				vector<Mat> mats;
+				split(difference, mats);
+				bool equal{ true };
+				for (auto& m : mats) {
+					if (countNonZero(m) != 0) {
+						equal = false;
+						break;
+					}
+				}
+				if (equal) {
+					cout << "\tbut are identical\n";
+				}
+				else {
+					src2dst[imgPaths[i]] = dstPath / (imgPaths[i].filename().stem().generic_string() + "_1"s + imgPaths[i].filename().extension().generic_string());
+				}
+			}
+			else {
+				picsDays[dateStr.str()].insert(imgPaths[i].filename().generic_string());
+				src2dst[imgPaths[i]] = dstPath / imgPaths[i].filename().generic_string();
+			}
+		}
+	}
+	
+	for (auto& sdp : src2dst) {
+		copyList << "copy " << sdp.first << " " << sdp.second << "\n";
+	}
+
+	for (auto& sdp : src2dst) {
+		try {
+			filesystem::create_directories(sdp.second.parent_path());
+			filesystem::copy(sdp.first, sdp.second);
+			cout << ".";
+		}
+		catch (std::exception e) {
+			cout << e.what() << "\n";
 		}
 	}
 }

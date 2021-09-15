@@ -18,6 +18,7 @@ class PictureAnalyser
 	std::filesystem::path startPath{"c:/Pictures"};
 	std::set<std::string> uniquePaths;
 	void findIdentical(directorySet_t& pics);
+	std::string getPhotoTime(std::string path);
 public:
 	void analyse(std::string_view s);
 	void saveUniques();
@@ -27,5 +28,6 @@ public:
 	void timeSortedUniques();
 	void timeSortedSDCard();
 	void setYearOfFolder(std::string& folderPath);
+	void addOnlineMonth();
 };
 

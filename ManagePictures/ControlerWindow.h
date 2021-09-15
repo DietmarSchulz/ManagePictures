@@ -71,6 +71,7 @@ public:
 			"Homography",
 			"Matches",
 			"3d Generation",
+			"Add online month",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -152,6 +153,9 @@ public slots:
 			return;
 		case 16:
 			viz3d.showPics(currFileName);
+			return;
+		case 17:
+			picAnalyser.addOnlineMonth();
 			return;
 		}
 	};
