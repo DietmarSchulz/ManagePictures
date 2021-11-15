@@ -27,7 +27,7 @@ public:
 	void showDirsPicture(std::string& s);
 	void timeSortedUniques();
 	void timeSortedSDCard();
-	void setYearOfFolder(std::string& folderPath);
+	void setDateOfFolder(std::string& folderPath);
 	void addOnlineMonth();
 };
 

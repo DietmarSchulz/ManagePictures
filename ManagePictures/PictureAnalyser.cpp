@@ -492,7 +492,7 @@ void PictureAnalyser::timeSortedSDCard()
 	}
 }
 
-void PictureAnalyser::setYearOfFolder(string& folderPath)
+void PictureAnalyser::setDateOfFolder(string& folderPath)
 {
 	if (folderPath.empty()) {
 		cout << "Empty path?\n";
@@ -500,8 +500,16 @@ void PictureAnalyser::setYearOfFolder(string& folderPath)
 	}
 	cout << "Set " + folderPath + "'s year to? ";
 	int newYear;
-
 	cin >> newYear;
+
+	int newMonth;
+	cout << "Month?\n";
+	cin >> newMonth;
+
+	int newDay;
+	cout << "Day?\n";
+	cin >> newDay;
+
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(folderPath);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
@@ -513,6 +521,8 @@ void PictureAnalyser::setYearOfFolder(string& folderPath)
 			SYSTEMTIME st;
 			auto res = FileTimeToSystemTime((FILETIME*)&t, &st);
 			st.wYear = newYear;
+			st.wMonth = newMonth;
+			st.wDay = newDay;
 			res = SystemTimeToFileTime(&st, (FILETIME*)&t);
 			filesystem::last_write_time(p, t);
 		}
@@ -561,11 +571,11 @@ std::string PictureAnalyser::getPhotoTime(std::string path)
 	TinyEXIF::EXIFInfo imageEXIF(data.data(), len);
 	if (imageEXIF.Fields)
 		std::cout
-		<< "Image Description " << imageEXIF.ImageDescription << "\n"
-		<< "Image Resolution " << imageEXIF.ImageWidth << "x" << imageEXIF.ImageHeight << " pixels\n"
-		<< "Camera Model " << imageEXIF.Make << " - " << imageEXIF.Model << "\n"
-		<< "Focal Length " << imageEXIF.FocalLength << " mm\n"
-		<< "Photo date " << imageEXIF.DateTimeOriginal << std::endl;
+			<< "Image Description " << imageEXIF.ImageDescription << "\n"
+			<< "Image Resolution " << imageEXIF.ImageWidth << "x" << imageEXIF.ImageHeight << " pixels\n"
+			<< "Camera Model " << imageEXIF.Make << " - " << imageEXIF.Model << "\n"
+			<< "Focal Length " << imageEXIF.FocalLength << " mm\n"
+			<< "Photo date " << imageEXIF.DateTimeOriginal << std::endl;
 	return imageEXIF.DateTimeOriginal;
 }
 

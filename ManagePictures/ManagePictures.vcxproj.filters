@@ -45,6 +45,9 @@
     <ClCompile Include="viz3dPics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Tutorial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PictureAnalyser.h">
@@ -64,6 +67,9 @@
     </ClInclude>
     <ClInclude Include="viz3dPics.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Tutorial.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
