@@ -15,7 +15,7 @@ class PictureAnalyser
 	using ticks2indices_t = std::map<long long, std::vector<int>>;
 	const int dispDelta{300};
 
-	std::filesystem::path startPath{"c:/Pictures"};
+	std::filesystem::path startPath{"d:/Pictures"};
 	std::set<std::string> uniquePaths;
 	void findIdentical(directorySet_t& pics);
 	std::string getPhotoTime(std::string path);

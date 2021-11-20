@@ -1,7 +1,15 @@
 #include "Tutorial.h"
+#include <chrono>
 
 using namespace std;
 using namespace cv;
+
+//template<Enum T>
+//constexpr string to_string(T value) {
+//    for (constexpr e : meta::members_of(reflexpr(T)) {
+//
+//    }
+//}
 
 void Tutorial::playAround()
 {
@@ -1252,6 +1260,9 @@ void Tutorial::colorHistEqualization(std::string& pic)
 {
     if (pic.empty())
         return;
+
+    chrono::duration<double, std::milli> sum{ 0 };
+    auto t0 = chrono::steady_clock::now();
     Mat image = imread(pic);
     //Convert the image from BGR to YCrCb color space
     Mat hist_equalized_image;
@@ -1298,7 +1309,7 @@ void Tutorial::colorHistEqualization(std::string& pic)
     //! [Set the ranges ( for B,G,R) )]
 
     //! [Set histogram param]
-    bool uniform = true, accumulate = false;
+    bool uniform{ true }, accumulate{ false };
     //! [Set histogram param]
 
     //! [Compute the histograms]
@@ -1309,7 +1320,7 @@ void Tutorial::colorHistEqualization(std::string& pic)
     //! [Compute the histograms]
 
     //! [Draw the histograms for B, G and R]
-    int hist_w = 512, hist_h = 400;
+    int hist_w{ 512 }, hist_h{ 400 };
     int bin_w = cvRound((double)hist_w / histSize);
 
     Mat histImage(hist_h, hist_w, CV_8UC3, Scalar(0, 0, 0));
@@ -1340,6 +1351,12 @@ void Tutorial::colorHistEqualization(std::string& pic)
     namedWindow("histo", WINDOW_NORMAL);
     imshow("histo", histImage);
 
+    auto t1 = chrono::steady_clock::now();
+    sum = t1 - t0;
+    cout << "Dauer: " << sum << '\n';
+    //chrono::year_month_day lst = 2021y / 12 / std::chrono::last;
+    //std::cout << std::format("date: {:%B %d, %Y}", lst);
+    cout << chrono::system_clock::now() << '\n';
     waitKey(0); // Wait for any keystroke in any one of the windows
 
     destroyAllWindows(); //Destroy all opened windows

@@ -25,7 +25,7 @@ private:
 
 
 	std::string currFileName;
-	std::string currDirName{ "C:/sorted_pics" };
+	std::string currDirName{ "d:/sorted_pics" };
 	PictureAnalyser picAnalyser;
 	PictureImprovement impr;
 	CameraUsage cam;

@@ -145,13 +145,13 @@ void PictureAnalyser::loadUniques()
 
 void PictureAnalyser::copyUniques()
 {
-	regex oldpath(R"(c:\/pictures)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex oldpath(R"(d:\/pictures)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 	for (auto& src : uniquePaths) {
 		if (filesystem::file_size(src) < 100 * 1024) {
 			cout << "Tiny " << src << "NOT copied!\n";
 		}
 
-		string dst = regex_replace(src, oldpath, "c:/unique_pics");
+		string dst = regex_replace(src, oldpath, "d:/unique_pics");
 		try {
 			filesystem::path destPath(dst);
 			filesystem::create_directories(destPath.parent_path());
@@ -322,7 +322,7 @@ void PictureAnalyser::timeSortedUniques()
 	map<string, set<string>> picsDays;
 	map<filesystem::path, filesystem::path> src2dst;
 
-	filesystem::path dstRoot("c:/sorted_pics");
+	filesystem::path dstRoot("d:/sorted_pics");
 
 	// Store the sorted map:
 	ofstream timeSortedPics("PicsSortedbyModificationTS.txt");
@@ -415,7 +415,7 @@ void PictureAnalyser::timeSortedSDCard()
 	map<string, set<string>> picsDays;
 	map<filesystem::path, filesystem::path> src2dst;
 
-	filesystem::path dstRoot("c:/sorted_pics");
+	filesystem::path dstRoot("d:/sorted_pics");
 
 	// Store the sorted map:
 	ofstream timeSortedPics("PicsSortedbyModificationTS.txt");
@@ -624,7 +624,7 @@ void PictureAnalyser::addOnlineMonth()
 	map<string, set<string>> picsDays;
 	map<filesystem::path, filesystem::path> src2dst;
 
-	filesystem::path dstRoot("c:/sorted_pics");
+	filesystem::path dstRoot("d:/sorted_pics");
 
 	// Store the sorted map:
 	ofstream timeSortedPics("SinglePicsSortedbyModificationTS.txt");
