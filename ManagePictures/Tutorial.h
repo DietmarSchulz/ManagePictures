@@ -56,5 +56,6 @@ public:
     void remap(std::string& imName);
     void affine(std::string& imName);
     void colorHistEqualization(std::string& pic);
+    void backProjection(std::string& pic);
 };
 

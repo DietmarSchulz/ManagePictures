@@ -88,6 +88,7 @@ public:
 			"Tutorial: Remap",
 			"Tutorial: Affine Transformation",
 			"Tutorial: Histogram equalization",
+			"Tutorial: Back Projection",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -214,6 +215,9 @@ public slots:
 			return;
 		case 31:
 			tut.colorHistEqualization(currFileName);
+			return;
+		case 32:
+			tut.backProjection(currFileName);
 			return;
 		}
 	};
