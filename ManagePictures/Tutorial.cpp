@@ -1,5 +1,6 @@
 #include "Tutorial.h"
 #include <chrono>
+#include <QtWidgets/qfiledialog.h>
 
 using namespace std;
 using namespace cv;
@@ -1437,6 +1438,125 @@ void Tutorial::backProjection(std::string& pic)
     /// Set a Mouse Callback
     setMouseCallback(window_image, pickPoint, 0);
 
+    waitKey();
+    destroyAllWindows();
+}
+
+bool use_mask;
+Mat templ, result;
+const char* result_window = "Result window";
+int match_method;
+int max_Trackbar = 5;
+
+void MatchingMethod(int, void*)
+{
+    //! [copy_source]
+    /// Source image to display
+    Mat img_display;
+    src.copyTo(img_display);
+    //! [copy_source]
+
+    //! [create_result_matrix]
+    /// Create the result matrix
+    int result_cols = src.cols - templ.cols + 1;
+    int result_rows = src.rows - templ.rows + 1;
+
+    result.create(result_rows, result_cols, CV_32FC1);
+    //! [create_result_matrix]
+
+    //! [match_template]
+    /// Do the Matching and Normalize
+    bool method_accepts_mask = (TM_SQDIFF == match_method || match_method == TM_CCORR_NORMED);
+    if (use_mask && method_accepts_mask)
+    {
+        matchTemplate(src, templ, result, match_method, mask);
+    }
+    else
+    {
+        matchTemplate(src, templ, result, match_method);
+    }
+    //! [match_template]
+
+    //! [normalize]
+    normalize(result, result, 0, 1, NORM_MINMAX, -1, Mat());
+    //! [normalize]
+
+    //! [best_match]
+    /// Localizing the best match with minMaxLoc
+    double minVal; double maxVal; Point minLoc; Point maxLoc;
+    Point matchLoc;
+
+    minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+    //! [best_match]
+
+    //! [match_loc]
+    /// For SQDIFF and SQDIFF_NORMED, the best matches are lower values. For all the other methods, the higher the better
+    if (match_method == TM_SQDIFF || match_method == TM_SQDIFF_NORMED)
+    {
+        matchLoc = minLoc;
+    }
+    else
+    {
+        matchLoc = maxLoc;
+    }
+    //! [match_loc]
+
+    //! [imshow]
+    /// Show me what you got
+    rectangle(img_display, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar::all(0), 2, 8, 0);
+    rectangle(result, matchLoc, Point(matchLoc.x + templ.cols, matchLoc.y + templ.rows), Scalar::all(0), 2, 8, 0);
+
+    imshow(window_image, img_display);
+    imshow(result_window, result);
+    //! [imshow]
+
+    return;
+}
+
+void Tutorial::backTemplate(std::string& pic)
+{
+    if (pic.empty())
+        return;
+    /// Read the image
+    src = imread(pic);
+
+    /// Show the image
+    namedWindow(window_image, WINDOW_NORMAL);
+    imshow(window_image, src);
+    namedWindow(result_window, WINDOW_NORMAL);
+
+    auto roi = cv::selectROI(window_image, src);
+    templ = src(roi).clone();
+    string secondPic = QFileDialog::getOpenFileName(nullptr, "Second picture for comparison", QString(), "All picture Files (*.jpg *.png *.tiff)").toStdString();
+    if (!secondPic.empty()) {
+        src = imread(secondPic);
+    }
+
+    const char* trackbar_label = "Method: \n 0: SQDIFF \n 1: SQDIFF NORMED \n 2: TM CCORR \n 3: TM CCORR NORMED \n 4: TM COEFF \n 5: TM COEFF NORMED";
+    createTrackbar(trackbar_label, window_image, &match_method, max_Trackbar, MatchingMethod);
+    waitKey();
+    destroyAllWindows();
+}
+
+void Tutorial::saveSubPicture(std::string& pic)
+{
+    if (pic.empty())
+        return;
+    /// Read the image
+    src = imread(pic);
+
+    /// Show the image
+    namedWindow(window_image, WINDOW_NORMAL);
+    imshow(window_image, src);
+    namedWindow(result_window, WINDOW_NORMAL);
+
+    auto roi = cv::selectROI(window_image, src);
+    auto subPicture = src(roi).clone();
+    string saveAsPath = QFileDialog::getSaveFileName(nullptr, "Save as:", QString(), "All picture Files (*.jpg *.png *.tiff)").toStdString();
+    auto success = imwrite(saveAsPath, subPicture);
+    if (!success) {
+        cout << "Error writing the file\n";
+    }
     waitKey();
     destroyAllWindows();
 }

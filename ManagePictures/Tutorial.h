@@ -57,5 +57,7 @@ public:
     void affine(std::string& imName);
     void colorHistEqualization(std::string& pic);
     void backProjection(std::string& pic);
+    void backTemplate(std::string& pic);
+    void saveSubPicture(std::string& pic);
 };
 

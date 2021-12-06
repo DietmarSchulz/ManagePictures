@@ -89,6 +89,8 @@ public:
 			"Tutorial: Affine Transformation",
 			"Tutorial: Histogram equalization",
 			"Tutorial: Back Projection",
+			"Tutorial: Match Template",
+			"Tutorial: Save subpicture",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -218,6 +220,12 @@ public slots:
 			return;
 		case 32:
 			tut.backProjection(currFileName);
+			return;
+		case 33:
+			tut.backTemplate(currFileName);
+			return;
+		case 34:
+			tut.saveSubPicture(currFileName);
 			return;
 		}
 	};
