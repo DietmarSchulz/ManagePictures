@@ -1,6 +1,7 @@
 #include "Tutorial.h"
 #include <chrono>
 #include <QtWidgets/qfiledialog.h>
+#include <filesystem>
 
 using namespace std;
 using namespace cv;
@@ -1559,4 +1560,76 @@ void Tutorial::saveSubPicture(std::string& pic)
     }
     waitKey();
     destroyAllWindows();
+}
+
+void Tutorial::splitVideo()
+{
+    string sourceVideo = QFileDialog::getOpenFileName(nullptr, "Video file", QString(), "All video Files (*.avi *.mpeg *.divx *.mp4)").toStdString();
+    set rgbSet{ 'r', 'g', 'b' };
+    set ynSet{ 'y', 'n'};
+    cout << "r g b?\n";
+    char channelChar, saveChar;
+    do { cin >> channelChar; } while (!rgbSet.contains(channelChar));
+    cout << "Save [y n]?\n";
+    do { cin >> saveChar; } while (!ynSet.contains(saveChar));
+    const bool askOutputType = saveChar == 'y';
+
+    VideoCapture inputVideo(sourceVideo);              // Open input
+    if (!inputVideo.isOpened())
+    {
+        cout << "Could not open the input video: " << sourceVideo << endl;
+        return;
+    }
+    filesystem::path saveVideo{ sourceVideo };
+    saveVideo.replace_filename(saveVideo.stem().generic_string() + channelChar + ".avi");
+    int ex = static_cast<int>(inputVideo.get(CAP_PROP_FOURCC));     // Get Codec Type- Int form
+
+    // Transform from int to char via Bitwise operators
+    char EXT[] = { (char)(ex & 0XFF) , (char)((ex & 0XFF00) >> 8),(char)((ex & 0XFF0000) >> 16),(char)((ex & 0XFF000000) >> 24), 0 };
+
+    Size S = Size((int)inputVideo.get(CAP_PROP_FRAME_WIDTH),    // Acquire input size
+        (int)inputVideo.get(CAP_PROP_FRAME_HEIGHT));
+
+    VideoWriter outputVideo;                                        // Open the output
+    if (askOutputType)
+        outputVideo.open(saveVideo.generic_string(), ex = -1, inputVideo.get(CAP_PROP_FPS), S, true);
+    else
+        outputVideo.open(saveVideo.generic_string(), ex, inputVideo.get(CAP_PROP_FPS), S, true);
+
+    if (!outputVideo.isOpened())
+    {
+        cout << "Could not open the output video for write: " << sourceVideo << endl;
+        return;
+    }
+
+    cout << "Input frame resolution: Width=" << S.width << "  Height=" << S.height
+        << " of nr#: " << inputVideo.get(CAP_PROP_FRAME_COUNT) << endl;
+    cout << "Input codec type: " << EXT << endl;
+
+    int channel = 2; // Select the channel to save
+    switch (channelChar)
+    {
+    case 'R': channel = 2; break;
+    case 'G': channel = 1; break;
+    case 'B': channel = 0; break;
+    }
+    Mat src, res;
+    vector<Mat> spl;
+
+    for (;;) //Show the image captured in the window and repeat
+    {
+        inputVideo >> src;              // read
+        if (src.empty()) break;         // check if at end
+
+        split(src, spl);                // process - extract only the correct channel
+        for (int i = 0; i < 3; ++i)
+            if (i != channel)
+                spl[i] = Mat::zeros(S, spl[0].type());
+        merge(spl, res);
+
+        //outputVideo.write(res); //save or
+        outputVideo << res;
+    }
+
+    cout << "Finished writing" << endl;
 }

@@ -91,6 +91,7 @@ public:
 			"Tutorial: Back Projection",
 			"Tutorial: Match Template",
 			"Tutorial: Save subpicture",
+			"Tutorial: Split channel of video and save",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -226,6 +227,9 @@ public slots:
 			return;
 		case 34:
 			tut.saveSubPicture(currFileName);
+			return;
+		case 35:
+			tut.splitVideo();
 			return;
 		}
 	};
