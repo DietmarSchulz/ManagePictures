@@ -491,7 +491,7 @@ void PictureImprovement::drawPred(int classId, float conf, int left, int top, in
 	static const array<Scalar, n> color{ Scalar(0, 255, 0), Scalar(255, 0, 0), Scalar(0, 0, 255), Scalar(255, 255, 0), Scalar(255, 255, 0), Scalar(0, 255, 255) };
 	rectangle(frame, Point(left, top), Point(right, bottom), color[index % n], factor);
 
-	std::string label = format("%.2f", conf);
+	std::string label = cv::format("%.2f", conf);
 	if (!classes.empty())
 	{
 		CV_Assert(classId < (int)classes.size());

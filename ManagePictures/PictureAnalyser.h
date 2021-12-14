@@ -15,9 +15,10 @@ class PictureAnalyser
 	using ticks2indices_t = std::map<long long, std::vector<int>>;
 	const int dispDelta{300};
 
-	std::filesystem::path startPath{"c:/Pictures"};
+	std::filesystem::path startPath{"d:/Pictures"};
 	std::set<std::string> uniquePaths;
 	void findIdentical(directorySet_t& pics);
+	std::string getPhotoTime(std::string path);
 public:
 	void analyse(std::string_view s);
 	void saveUniques();
@@ -26,6 +27,7 @@ public:
 	void showDirsPicture(std::string& s);
 	void timeSortedUniques();
 	void timeSortedSDCard();
-	void setYearOfFolder(std::string& folderPath);
+	void setDateOfFolder(std::string& folderPath);
+	void addOnlineMonth();
 };
 

@@ -12,6 +12,7 @@
 #include "PictureCalculations.h"
 #include "TextProcessing.h"
 #include "viz3dPics.h"
+#include "Tutorial.h"
 
 class ControlerWindow : public QWidget
 {
@@ -24,13 +25,14 @@ private:
 
 
 	std::string currFileName;
-	std::string currDirName{ "C:/sorted_pics" };
+	std::string currDirName{ "d:/sorted_pics" };
 	PictureAnalyser picAnalyser;
 	PictureImprovement impr;
 	CameraUsage cam;
 	PictureCalculations calcPics;
 	TextProcessing textProc;
 	viz3dPics viz3d;
+	Tutorial tut;
 public:
 	explicit ControlerWindow(QWidget* parent = 0) : QWidget(parent) {
 		// Set size of the window
@@ -64,13 +66,31 @@ public:
 			"Camera objects",
 			"Add pictures",
 			"TimeSortedSDPics",
-			"Set folder's year",
+			"Set folder's date",
 			"RGB manipulation",
 			"Single hd.wr Digs",
 			"Random forests",
 			"Homography",
 			"Matches",
 			"3d Generation",
+			"Add online month",
+			"Tutorial: Play Around",
+			"Tutorial: How to scan images",
+			"Tutorial: Kernel usage",
+			"Tutorial: Draw something",
+			"Tutorial: Do some File IO",
+			"Tutorial: Do some Filters",
+			"Tutorial: Erode/Dilate",
+			"Tutorial: Open/Close/MorphGrad/TopHat/BlackHat",
+			"Tutorial: Zoom In/Out per pyramid",
+			"Tutorial: Threshold",
+			"Tutorial: Canny",
+			"Tutorial: Remap",
+			"Tutorial: Affine Transformation",
+			"Tutorial: Histogram equalization",
+			"Tutorial: Back Projection",
+			"Tutorial: Match Template",
+			"Tutorial: Save subpicture",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -133,7 +153,7 @@ public slots:
 			picAnalyser.timeSortedSDCard();
 			return;
 		case 10:
-			picAnalyser.setYearOfFolder(currDirName);
+			picAnalyser.setDateOfFolder(currDirName);
 			return;
 		case 11:
 			calcPics.RGBManipulation(currFileName);
@@ -152,6 +172,60 @@ public slots:
 			return;
 		case 16:
 			viz3d.showPics(currFileName);
+			return;
+		case 17:
+			picAnalyser.addOnlineMonth();
+			return;
+		case 18:
+			tut.playAround();
+			return;
+		case 19:
+			tut.howToScanImages(currFileName, "20", "C" /*"G"*/);
+			return;
+		case 20:
+			tut.useKernel(currFileName);
+			return;
+		case 21:
+			tut.drawSomething();
+			return;
+		case 22:
+			tut.someInputOutput();
+			return;
+		case 23:
+			tut.filters(currFileName);
+			return;
+		case 24:
+			tut.erodeDilate(currFileName);
+			return;
+		case 25:
+			tut.morph2(currFileName);
+			return;
+		case 26:
+			tut.pyramid(currFileName);
+			return;
+		case 27:
+			tut.threshold(currFileName);
+			return;
+		case 28:
+			tut.canny(currFileName);
+			return;
+		case 29:
+			tut.remap(currFileName);
+			return;
+		case 30:
+			tut.affine(currFileName);
+			return;
+		case 31:
+			tut.colorHistEqualization(currFileName);
+			return;
+		case 32:
+			tut.backProjection(currFileName);
+			return;
+		case 33:
+			tut.backTemplate(currFileName);
+			return;
+		case 34:
+			tut.saveSubPicture(currFileName);
 			return;
 		}
 	};
