@@ -166,6 +166,12 @@ void PictureAnalyser::copyUniques()
 
 void PictureAnalyser::showDirsPicture(string& s)
 {
+	std::string currDirName{ "d:/sorted_pics" };
+	if (s.empty() || s == currDirName) {
+		QString dummy;
+		dummy = dummy.fromStdString(currDirName);
+		s = QFileDialog::getExistingDirectory(nullptr, "Open Folder", dummy).toStdString();
+	}
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(s);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
