@@ -166,6 +166,13 @@ void PictureAnalyser::copyUniques()
 
 void PictureAnalyser::showDirsPicture(string& s)
 {
+	std::string currDirName{ "d:/sorted_pics" };
+	if (s.empty() || s == currDirName) {
+		QString dummy;
+		dummy = dummy.fromStdString(currDirName);
+		s = QFileDialog::getExistingDirectory(nullptr, "Open Folder", dummy).toStdString();
+		if (s.empty()) return;
+	}
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(s);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
@@ -200,7 +207,13 @@ void PictureAnalyser::showDirsPicture(string& s)
 		}
 		else if (equal && (mSize != imgs[i][j].size() || mType != imgs[i][j].type())) {
 			if (mType == imgs[i][j].type()) {
-				resize(imgs[i][j], imgs[i][j], mSize);
+				double fx = static_cast<double>(mSize.width) / imgs[i][j].size().width;
+				double fy = static_cast<double>(mSize.height) / imgs[i][j].size().height;
+				double commonF = min(fx, fy);
+				Mat resizedImg;
+				resize(imgs[i][j], resizedImg, Size(), commonF, commonF);
+				imgs[i][j] = Mat::zeros(mSize, mType);
+				resizedImg.copyTo(imgs[i][j](cv::Rect(0, 0, resizedImg.cols, resizedImg.rows)));
 			}
 			else {
 				equal = false;
