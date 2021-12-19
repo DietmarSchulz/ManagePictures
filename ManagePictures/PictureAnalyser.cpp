@@ -171,6 +171,7 @@ void PictureAnalyser::showDirsPicture(string& s)
 		QString dummy;
 		dummy = dummy.fromStdString(currDirName);
 		s = QFileDialog::getExistingDirectory(nullptr, "Open Folder", dummy).toStdString();
+		if (s.empty()) return;
 	}
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(s);
@@ -209,7 +210,10 @@ void PictureAnalyser::showDirsPicture(string& s)
 				double fx = static_cast<double>(mSize.width) / imgs[i][j].size().width;
 				double fy = static_cast<double>(mSize.height) / imgs[i][j].size().height;
 				double commonF = min(fx, fy);
-				resize(imgs[i][j], imgs[i][j], mSize, commonF, commonF);
+				Mat resizedImg;
+				resize(imgs[i][j], resizedImg, Size(), commonF, commonF);
+				imgs[i][j] = Mat::zeros(mSize, mType);
+				resizedImg.copyTo(imgs[i][j](cv::Rect(0, 0, resizedImg.cols, resizedImg.rows)));
 			}
 			else {
 				equal = false;
