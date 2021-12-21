@@ -1570,7 +1570,7 @@ void Tutorial::splitVideo()
     cout << "r g b?\n";
     char channelChar, saveChar;
     do { cin >> channelChar; } while (!rgbSet.contains(channelChar));
-    cout << "Save [y n]?\n";
+    cout << "Ask Output type [y n]?\n";
     do { cin >> saveChar; } while (!ynSet.contains(saveChar));
     const bool askOutputType = saveChar == 'y';
 
