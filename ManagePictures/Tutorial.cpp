@@ -1596,12 +1596,16 @@ void Tutorial::splitVideo()
     else
         outputVideo.open(saveVideo.generic_string(), ex, inputVideo.get(CAP_PROP_FPS), S, true);
 
+    auto save{ true };
     if (!outputVideo.isOpened())
     {
         cout << "Could not open the output video for write: " << sourceVideo << endl;
-        return;
+        save = false;
     }
 
+    //get the frames rate of the video
+    double fps = inputVideo.get(CAP_PROP_FPS);
+    cout << "Frames per seconds : " << fps << endl;
     cout << "Input frame resolution: Width=" << S.width << "  Height=" << S.height
         << " of nr#: " << inputVideo.get(CAP_PROP_FRAME_COUNT) << endl;
     cout << "Input codec type: " << EXT << endl;
@@ -1616,6 +1620,8 @@ void Tutorial::splitVideo()
     Mat src, res;
     vector<Mat> spl;
 
+    String window_name_of_original_video = "Original Video";
+    namedWindow(window_name_of_original_video, WINDOW_NORMAL);
     for (;;) //Show the image captured in the window and repeat
     {
         inputVideo >> src;              // read
@@ -1626,10 +1632,27 @@ void Tutorial::splitVideo()
             if (i != channel)
                 spl[i] = Mat::zeros(S, spl[0].type());
         merge(spl, res);
+        imshow(window_name_of_original_video, res);
 
         //outputVideo.write(res); //save or
-        outputVideo << res;
+        if (save) {
+            outputVideo << res;
+        }
+        //wait for for 10 ms until any key is pressed.  
+        //If the 'Esc' key is pressed, break the while loop.
+        //If the any other key is pressed, continue the loop 
+        //If any key is not pressed withing 10 ms, continue the loop
+        if (waitKey(static_cast<int>(1000 / fps)) == 27)
+        {
+            cout << "Esc key is pressed by user. Stoppig the video" << endl;
+            break;
+        }
     }
-
-    cout << "Finished writing" << endl;
+    if (save) {
+        cout << "Finished writing" << endl;
+    }
+    else {
+        cout << "Video finished\n";
+    }
+    destroyAllWindows();
 }
