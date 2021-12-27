@@ -1581,7 +1581,7 @@ void Tutorial::splitVideo()
         return;
     }
     filesystem::path saveVideo{ sourceVideo };
-    saveVideo.replace_filename(saveVideo.stem().generic_string() + channelChar + ".avi");
+    saveVideo.replace_filename(saveVideo.stem().generic_string() + channelChar + saveVideo.extension().generic_string());
     int ex = static_cast<int>(inputVideo.get(CAP_PROP_FOURCC));     // Get Codec Type- Int form
 
     // Transform from int to char via Bitwise operators
