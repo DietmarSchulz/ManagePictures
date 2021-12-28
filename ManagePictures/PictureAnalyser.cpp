@@ -584,11 +584,12 @@ std::string PictureAnalyser::getPhotoTime(std::string path)
 	TinyEXIF::EXIFInfo imageEXIF(data.data(), len);
 	if (imageEXIF.Fields)
 		std::cout
-			<< "Image Description " << imageEXIF.ImageDescription << "\n"
-			<< "Image Resolution " << imageEXIF.ImageWidth << "x" << imageEXIF.ImageHeight << " pixels\n"
-			<< "Camera Model " << imageEXIF.Make << " - " << imageEXIF.Model << "\n"
-			<< "Focal Length " << imageEXIF.FocalLength << " mm\n"
-			<< "Photo date " << imageEXIF.DateTimeOriginal << std::endl;
+		<< path << "\n"
+			<< "\tImage Description " << imageEXIF.ImageDescription << "\n"
+			<< "\tImage Resolution " << imageEXIF.ImageWidth << "x" << imageEXIF.ImageHeight << " pixels\n"
+			<< "\tCamera Model " << imageEXIF.Make << " - " << imageEXIF.Model << "\n"
+			<< "\tFocal Length " << imageEXIF.FocalLength << " mm\n"
+			<< "\tPhoto date " << imageEXIF.DateTimeOriginal << std::endl;
 	return imageEXIF.DateTimeOriginal;
 }
 
