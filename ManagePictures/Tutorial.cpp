@@ -1652,7 +1652,7 @@ void Tutorial::splitVideo()
         cout << "Finished writing" << endl;
     }
     else {
-        cout << "Video finished\n";
+        cout << "Video display finished\n";
     }
     destroyAllWindows();
 }
