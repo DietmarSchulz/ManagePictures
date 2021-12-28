@@ -1612,7 +1612,7 @@ void Tutorial::splitVideo()
     cout << "Input codec type: " << EXT << endl;
 
     int channel = 2; // Select the channel to save
-    switch (channelChar)
+    switch (toupper(channelChar))
     {
     case 'R': channel = 2; break;
     case 'G': channel = 1; break;
