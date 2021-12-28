@@ -1591,10 +1591,13 @@ void Tutorial::splitVideo()
         (int)inputVideo.get(CAP_PROP_FRAME_HEIGHT));
 
     VideoWriter outputVideo;                                        // Open the output
+
+    //get the frames rate of the video
+    double fps = inputVideo.get(CAP_PROP_FPS);
     if (askOutputType)
-        outputVideo.open(saveVideo.generic_string(), ex = -1, inputVideo.get(CAP_PROP_FPS), S, true);
+        outputVideo.open(saveVideo.generic_string(), ex = -1, fps, S, true);
     else
-        outputVideo.open(saveVideo.generic_string(), ex, inputVideo.get(CAP_PROP_FPS), S, true);
+        outputVideo.open(saveVideo.generic_string(), ex, fps, S, true);
 
     auto save{ true };
     if (!outputVideo.isOpened())
@@ -1603,8 +1606,6 @@ void Tutorial::splitVideo()
         save = false;
     }
 
-    //get the frames rate of the video
-    double fps = inputVideo.get(CAP_PROP_FPS);
     cout << "Frames per seconds : " << fps << endl;
     cout << "Input frame resolution: Width=" << S.width << "  Height=" << S.height
         << " of nr#: " << inputVideo.get(CAP_PROP_FRAME_COUNT) << endl;
