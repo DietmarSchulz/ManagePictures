@@ -103,3 +103,5 @@ javac-services.0.log.lck
 !runtime/Python3/test/
 Antlr4.sln
 /ManagePictures/models
+/ManagePictures/SingleCopytoSortedPics.txt
+/ManagePictures/SinglePicsSortedbyModificationTS.txt
