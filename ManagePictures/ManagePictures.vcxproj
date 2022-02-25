@@ -151,6 +151,7 @@
   <ItemGroup>
     <ClCompile Include="CameraUsage.cpp" />
     <ClCompile Include="ControlerWindow.cpp" />
+    <ClCompile Include="Croppping.cpp" />
     <ClCompile Include="GeneratedFiles\Debug\moc_ControlerWindow.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
       <AdditionalIncludeDirectories Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;%(AdditionalIncludeDirectories);$(VcpkgCurrentInstalledDir)include</AdditionalIncludeDirectories>
@@ -172,6 +173,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CameraUsage.h" />
+    <ClInclude Include="Croppping.h" />
     <ClInclude Include="PictureAnalyser.h" />
     <ClInclude Include="PictureCalculations.h" />
     <ClInclude Include="PictureImprovement.h" />

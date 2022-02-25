@@ -10,6 +10,7 @@
 // CUDA structures and methods
 #include <opencv2/cudaarithm.hpp>
 #include <opencv2/cudafilters.hpp>
+#include "opencv2/objdetect/objdetect.hpp"
 
 using namespace std;
 using namespace cv;
@@ -364,7 +365,7 @@ void PictureImprovement::redEyeRemoving(Mat& ioMat)
 	equalizeHist(frame_gray, frame_gray);
 	//-- Detect faces
 	std::vector<Rect> faces;
-	face_cascade.detectMultiScale(frame_gray, faces, 1.1, 3);
+	face_cascade.detectMultiScale(frame_gray, faces, 1.1, 2, 0 | CASCADE_FIND_BIGGEST_OBJECT, Size(30, 30));
 	for (size_t i = 0; i < faces.size(); i++)
 	{
 		Point center(faces[i].x + faces[i].width / 2, faces[i].y + faces[i].height / 2);

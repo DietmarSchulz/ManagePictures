@@ -48,6 +48,9 @@
     <ClCompile Include="Tutorial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Croppping.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="PictureAnalyser.h">
@@ -70,6 +73,9 @@
     </ClInclude>
     <ClInclude Include="Tutorial.h">
       <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Croppping.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

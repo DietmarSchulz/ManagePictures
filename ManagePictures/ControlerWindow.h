@@ -13,6 +13,7 @@
 #include "TextProcessing.h"
 #include "viz3dPics.h"
 #include "Tutorial.h"
+#include "Croppping.h"
 
 class ControlerWindow : public QWidget
 {
@@ -33,6 +34,7 @@ private:
 	TextProcessing textProc;
 	viz3dPics viz3d;
 	Tutorial tut;
+	Croppping cropping;
 public:
 	explicit ControlerWindow(QWidget* parent = 0) : QWidget(parent) {
 		// Set size of the window
@@ -92,6 +94,7 @@ public:
 			"Tutorial: Match Template",
 			"Tutorial: Save subpicture",
 			"Tutorial: Split channel of video and save",
+			"Crop",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -230,6 +233,9 @@ public slots:
 			return;
 		case 35:
 			tut.splitVideo();
+			return;
+		case 36:
+			cropping.crop(currFileName);
 			return;
 		}
 	};
