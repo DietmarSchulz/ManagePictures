@@ -34,10 +34,21 @@ void Croppping::crop(std::string path)
 	erode(closed, closed, Mat{}, Point(-1, -1), 4);
 	dilate(closed, closed, Mat{}, Point(-1, -1), 4);
 
-	Mat cnts;
+	vector<vector<Point>> cnts;
 	findContours(closed, cnts, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
 
-	Mat c;
-	cv::sort(cnts, cnts, true);
-	c = cnts.at<char>(0);
+	vector<Point> c;
+	ranges::sort(cnts, [](const auto& v1, const auto& v2) { return contourArea(v1) > contourArea(v2); });
+	c = cnts[0];
+
+	// compute the rotated bounding box of the largest contour
+	auto rect = minAreaRect(c);
+	vector<vector<Point> >hull(1);
+	convexHull(c, hull[0]);
+	drawContours(image, hull, -1, Scalar(0, 255, 0), 3);
+
+	namedWindow("Image", WINDOW_NORMAL);
+	imshow("Image", image);
+	waitKey(0); 
+	destroyAllWindows();
 }
