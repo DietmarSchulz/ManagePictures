@@ -31,8 +31,8 @@ void Croppping::crop(std::string path)
 
 	Mat closed;
 	morphologyEx(thresh, closed, MORPH_CLOSE, kernel);
-	erode(closed, closed, Mat{}, Point(-1, -1), 4);
-	dilate(closed, closed, Mat{}, Point(-1, -1), 4);
+	erode(closed, closed, Mat{}, Point(-1, -1), 10);
+	dilate(closed, closed, Mat{}, Point(-1, -1), 20);
 
 	vector<vector<Point>> cnts;
 	findContours(closed, cnts, RETR_EXTERNAL, CHAIN_APPROX_SIMPLE);
@@ -49,6 +49,11 @@ void Croppping::crop(std::string path)
 
 	namedWindow("Image", WINDOW_NORMAL);
 	imshow("Image", image);
-	waitKey(0); 
+
+	Mat cropped;
+	cv::bitwise_and(image, image, cropped, closed);
+	namedWindow("Cropped Image", WINDOW_NORMAL);
+	imshow("Cropped Image", cropped);
+	waitKey(0);
 	destroyAllWindows();
 }
