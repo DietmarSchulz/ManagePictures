@@ -1,6 +1,4 @@
 #include "viz3dPics.h"
-#include <opencv2/opencv.hpp>
-#include <opencv2/viz.hpp>
 
 using namespace cv;
 
@@ -126,6 +124,7 @@ void viz3dPics::showPics(std::string_view imgName)
 	window.showWidget("circle180 widget", circle180);
 	
 	Mat rot_vecZ = Mat::zeros(1, 3, CV_32F);
+	Mat rot_vecZm = Mat::zeros(1, 3, CV_32F);
 	Mat rot_vecY = Mat::zeros(1, 3, CV_32F);
 	
 	while (!window.wasStopped())
@@ -135,17 +134,25 @@ void viz3dPics::showPics(std::string_view imgName)
 		rot_vecZ.at<float>(0, 1) += (float)CV_PI * 0.0f;
 		rot_vecZ.at<float>(0, 2) += (float)CV_PI * 0.01f;
 
+		rot_vecZm.at<float>(0, 0) += (float)CV_PI * 0.0f;
+		rot_vecZm.at<float>(0, 1) += (float)CV_PI * 0.0f;
+		rot_vecZm.at<float>(0, 2) += -(float)CV_PI * 0.01f;
+
 		rot_vecY.at<float>(0, 0) += (float)CV_PI * 0.0f;
 		rot_vecY.at<float>(0, 1) += (float)CV_PI * 0.01f;
 		rot_vecY.at<float>(0, 2) += (float)CV_PI * 0.0f;
 
 		Mat rot_matZ;
+		Mat rot_matZm;
 		Mat rot_matY;
 		Rodrigues(rot_vecZ, rot_matZ);
+		Rodrigues(rot_vecZm, rot_matZm);
 		Rodrigues(rot_vecY, rot_matY);
 		Affine3f poseZ(rot_matZ);
+		Affine3f poseZm(rot_matZm);
 		Affine3f poseY(rot_matY, Vec3d(0.0, 0.0, -3.75));
 		window.setWidgetPose("circle45 widget", poseZ);
+		window.setWidgetPose("mesh", poseZm);
 		window.setWidgetPose("circle90 widget", poseY);
 		window.spinOnce(1, true);
 	}
@@ -251,4 +258,50 @@ void viz3dPics::showPics(std::string_view imgName)
 	}
 
 
+}
+
+void viz3dPics::displayGeometry()
+{
+	//This will be your reference camera
+	viz::Viz3d myWindow("Coordinate Frame");
+	myWindow.showWidget("Coordinate Widget", viz::WCoordinateSystem());
+	viz::WGrid gridXY;
+	viz::WGrid gridXZ(Point3d(0.0, 0.0, 0.0), Vec3d(0.0, 1.0, 0.0), Vec3d(1.0, 0.0, 0.0), Vec2i::all(10), Vec2d::all(1.0), viz::Color::gray());
+	viz::WGrid gridYZ(Point3d(0.0, 0.0, 0.0), Vec3d(1.0, 0.0, 0.0), Vec3d(0.0, 1.0, 0.0), Vec2i::all(10), Vec2d::all(1.0), viz::Color::olive());
+	gridXY.setColor(viz::Color::black());
+	myWindow.showWidget("GridXY widget", gridXY);
+	myWindow.showWidget("GridXZ widget", gridXZ);
+	myWindow.showWidget("GridYZ widget", gridYZ);
+
+	point_t points;
+	square_t squares;
+
+	addPoint(points, myWindow, "A", 1.0, 1.0, 1.0);
+	addPoint(points, myWindow, "B", 3.0, 1.0, 1.0);
+	addPoint(points, myWindow, "C", 3.0, 3.0, 1.0);
+	addPoint(points, myWindow, "D", 1.0, 3.0, 1.0);
+	auto it = points.begin();
+	addSquare(squares, myWindow, "ABCD", *it++, *it++, *it++, *it++);
+	myWindow.spin();
+}
+
+void viz3dPics::addPoint(point_t& points, viz::Viz3d& window, const std::string name, float x, float y, float z)
+{
+	Point3f newPoint{ x, y, z };
+	points[name] = newPoint;
+	viz::WText3D tName(name, newPoint, 0.5);
+	window.showWidget("t" + name, tName);
+}
+
+void viz3dPics::addSquare(square_t& square, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b, namedPoint_t c, namedPoint_t d)
+{
+	std::vector<Point3f> meshPoints{ a.second, b.second, c.second, d.second };
+	square[name] = { a, b, c, d };
+	std::vector faces{ 4, 0, 1, 3, 2};
+	viz::WMesh mesh(meshPoints, faces);
+	mesh.setColor(viz::Color::orange_red());
+	mesh.setRenderingProperty(viz::OPACITY, 0.4);
+	mesh.setRenderingProperty(viz::SHADING, viz::SHADING_FLAT);
+	mesh.setRenderingProperty(viz::REPRESENTATION, viz::REPRESENTATION_SURFACE);
+	window.showWidget(name, mesh);
 }

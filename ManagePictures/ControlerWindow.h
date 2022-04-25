@@ -95,6 +95,7 @@ public:
 			"Tutorial: Save subpicture",
 			"Tutorial: Split channel of video and save",
 			"Crop",
+			"Display Geometry",
 			});
 		QObject::connect(&list, SIGNAL(doubleClicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
 		QObject::connect(&list, SIGNAL(clicked(const QModelIndex&)), this, SLOT(listItemClicked(const QModelIndex&)));
@@ -236,6 +237,9 @@ public slots:
 			return;
 		case 36:
 			cropping.crop(currFileName);
+			return;
+		case 37:
+			viz3d.displayGeometry();
 			return;
 		}
 	};
