@@ -275,13 +275,17 @@ void viz3dPics::displayGeometry()
 
 	point_t points;
 	square_t squares;
+	line_t lines;
 
 	addPoint(points, myWindow, "A", 1.0, 1.0, 1.0);
 	addPoint(points, myWindow, "B", 3.0, 1.0, 1.0);
 	addPoint(points, myWindow, "C", 3.0, 3.0, 1.0);
 	addPoint(points, myWindow, "D", 1.0, 3.0, 1.0);
+	addPoint(points, myWindow, "E", 1.0, 3.0, 3.0);
+	addPoint(points, myWindow, "F", 1.0, 5.0, 3.0);
 	auto it = points.begin();
 	addSquare(squares, myWindow, "ABCD", *it++, *it++, *it++, *it++);
+	addLine(lines, myWindow, "EF",{ "E", points["E"] }, {"F", points["F"]});
 	myWindow.spin();
 }
 
@@ -304,4 +308,12 @@ void viz3dPics::addSquare(square_t& square, cv::viz::Viz3d& window, const std::s
 	mesh.setRenderingProperty(viz::SHADING, viz::SHADING_FLAT);
 	mesh.setRenderingProperty(viz::REPRESENTATION, viz::REPRESENTATION_SURFACE);
 	window.showWidget(name, mesh);
+}
+
+void viz3dPics::addLine(line_t& lines, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b)
+{
+	viz::WLine line(a.second, b.second);
+	lines[name] = { a, b };
+	line.setRenderingProperty(viz::LINE_WIDTH, 2.0);
+	window.showWidget(name, line);
 }
