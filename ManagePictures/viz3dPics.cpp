@@ -1,4 +1,6 @@
 #include "viz3dPics.h"
+#include <QtWidgets/qfiledialog.h>
+#include <fstream>
 
 using namespace cv;
 
@@ -286,6 +288,51 @@ void viz3dPics::displayGeometry()
 	auto it = points.begin();
 	addSquare(squares, myWindow, "ABCD", *it++, *it++, *it++, *it++);
 	addLine(lines, myWindow, "EF",{ "E", points["E"] }, {"F", points["F"]});
+
+	std::string filename = QFileDialog::getOpenFileName(nullptr, "Geometry file", QString(), "All geo Files (*.geo)").toStdString();
+	if (filename.empty()) {
+		std::cout << "nothing\n";
+		return;
+	}
+	std::ifstream ifs(filename);
+	while (!ifs.eof()) {
+		char sel;
+		float x, y, z;
+		std::string name;
+		ifs >> sel;
+		ifs >> name;
+		switch (sel) {
+		case 'p':
+			ifs >> x;
+			ifs >> y;
+			ifs >> z;
+			addPoint(points, myWindow, name, x, y, z);
+			break;
+		case 'l':
+			{
+				std::string strt;
+				std::string end;
+				ifs >> strt;
+				ifs >> end;
+				if (!points.contains(strt) || !points.contains(end))
+					std::cout << "Lines points do not exist!\n";
+				addLine(lines, myWindow, name, { strt, points[strt] }, { end, points[end] }); 
+			}
+			break;
+		case 's':
+			{
+				std::string a, b, c, d;
+				ifs >> a;
+				ifs >> b;
+				ifs >> c;
+				ifs >> d;
+				if (!points.contains(a) || !points.contains(b) || !points.contains(c) || !points.contains(d))
+					std::cout << "Square points do not exist!\n";
+				addSquare(squares, myWindow, name, { a, points[a] }, { b, points[b] }, { c, points[c] }, { d, points[d] });
+			}
+			break;
+		}
+	}
 	myWindow.spin();
 }
 
@@ -293,7 +340,7 @@ void viz3dPics::addPoint(point_t& points, viz::Viz3d& window, const std::string 
 {
 	Point3f newPoint{ x, y, z };
 	points[name] = newPoint;
-	viz::WText3D tName(name, newPoint, 0.5);
+	viz::WText3D tName(name, newPoint, 0.2);
 	window.showWidget("t" + name, tName);
 }
 
