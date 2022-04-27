@@ -274,6 +274,7 @@ void viz3dPics::displayGeometry()
 	myWindow.showWidget("GridXY widget", gridXY);
 	myWindow.showWidget("GridXZ widget", gridXZ);
 	myWindow.showWidget("GridYZ widget", gridYZ);
+	myWindow.setBackgroundColor(viz::Color::Color(200.0, 200.0, 200.0));
 
 	point_t points;
 	square_t squares;
