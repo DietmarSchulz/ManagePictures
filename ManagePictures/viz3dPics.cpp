@@ -277,6 +277,7 @@ void viz3dPics::displayGeometry()
 
 	point_t points;
 	square_t squares;
+	triangle_t triangles;
 	line_t lines;
 
 	std::string filename = QFileDialog::getOpenFileName(nullptr, "Geometry file", QString(), "All geo Files (*.geo)").toStdString();
@@ -321,6 +322,17 @@ void viz3dPics::displayGeometry()
 				addSquare(squares, myWindow, name, { a, points[a] }, { b, points[b] }, { c, points[c] }, { d, points[d] });
 			}
 			break;
+		case 't':
+			{
+				std::string a, b, c;
+				ifs >> a;
+				ifs >> b;
+				ifs >> c;
+				if (!points.contains(a) || !points.contains(b) || !points.contains(c))
+					std::cout << "Square points do not exist!\n";
+				addTriangle(triangles, myWindow, name, { a, points[a] }, { b, points[b] }, { c, points[c] });
+			}
+			break;
 		}
 	}
 	myWindow.spin();
@@ -334,10 +346,10 @@ void viz3dPics::addPoint(point_t& points, viz::Viz3d& window, const std::string 
 	window.showWidget("t" + name, tName);
 }
 
-void viz3dPics::addSquare(square_t& square, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b, namedPoint_t c, namedPoint_t d)
+void viz3dPics::addSquare(square_t& squares, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b, namedPoint_t c, namedPoint_t d)
 {
 	std::vector<Point3f> meshPoints{ a.second, b.second, c.second, d.second };
-	square[name] = { a, b, c, d };
+	squares[name] = { a, b, c, d };
 	std::vector faces{ 4, 0, 1, 3, 2};
 	viz::WMesh mesh(meshPoints, faces);
 	mesh.setColor(viz::Color::orange_red());
@@ -345,6 +357,31 @@ void viz3dPics::addSquare(square_t& square, cv::viz::Viz3d& window, const std::s
 	mesh.setRenderingProperty(viz::SHADING, viz::SHADING_FLAT);
 	mesh.setRenderingProperty(viz::REPRESENTATION, viz::REPRESENTATION_SURFACE);
 	window.showWidget(name, mesh);
+}
+
+void viz3dPics::addTriangle(triangle_t& triangles, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b, namedPoint_t c)
+{
+	std::vector<Point3f> meshPoints{ a.second, b.second, c.second };
+	triangles[name] = { a, b, c };
+	std::vector faces{ 3, 0, 1, 2 };
+	viz::WMesh mesh(meshPoints, faces);
+	mesh.setColor(viz::Color::azure());
+	mesh.setRenderingProperty(viz::OPACITY, 0.4);
+	mesh.setRenderingProperty(viz::SHADING, viz::SHADING_FLAT);
+	mesh.setRenderingProperty(viz::REPRESENTATION, viz::REPRESENTATION_SURFACE);
+	window.showWidget(name, mesh);
+
+	// rectangular in a?
+	Vec3f v1 = b.second - a.second;
+	Vec3f v2 = c.second - a.second;
+	auto n = v1.cross(v2);
+
+	auto s = v1.dot(v2);
+	if (s == 0.0) {
+		std::cout << "orthogonal!\n";
+		viz::WCircle rectCircle(0.1, Point3d(a.second), Vec3d(n), 0.02, viz::Color::yellow());
+		window.showWidget(name + "rectAngle", rectCircle);
+	}
 }
 
 void viz3dPics::addLine(line_t& lines, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b)
