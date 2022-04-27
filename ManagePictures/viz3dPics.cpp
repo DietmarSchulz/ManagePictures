@@ -279,16 +279,6 @@ void viz3dPics::displayGeometry()
 	square_t squares;
 	line_t lines;
 
-	addPoint(points, myWindow, "A", 1.0, 1.0, 1.0);
-	addPoint(points, myWindow, "B", 3.0, 1.0, 1.0);
-	addPoint(points, myWindow, "C", 3.0, 3.0, 1.0);
-	addPoint(points, myWindow, "D", 1.0, 3.0, 1.0);
-	addPoint(points, myWindow, "E", 1.0, 3.0, 3.0);
-	addPoint(points, myWindow, "F", 1.0, 5.0, 3.0);
-	auto it = points.begin();
-	addSquare(squares, myWindow, "ABCD", *it++, *it++, *it++, *it++);
-	addLine(lines, myWindow, "EF",{ "E", points["E"] }, {"F", points["F"]});
-
 	std::string filename = QFileDialog::getOpenFileName(nullptr, "Geometry file", QString(), "All geo Files (*.geo)").toStdString();
 	if (filename.empty()) {
 		std::cout << "nothing\n";
