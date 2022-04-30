@@ -312,6 +312,17 @@ void viz3dPics::displayGeometry()
 				addLine(lines, myWindow, name, { strt, points[strt] }, { end, points[end] }); 
 			}
 			break;
+		case 'a':
+			{
+				std::string strt;
+				std::string end;
+				ifs >> strt;
+				ifs >> end;
+				if (!points.contains(strt) || !points.contains(end))
+					std::cout << "Lines points do not exist!\n";
+				addArrow(lines, myWindow, name, { strt, points[strt] }, { end, points[end] });
+			}
+			break;
 		case 's':
 			{
 				std::string a, b, c, d;
@@ -399,6 +410,13 @@ void viz3dPics::addLine(line_t& lines, cv::viz::Viz3d& window, const std::string
 	lines[name] = { a, b };
 	line.setRenderingProperty(viz::LINE_WIDTH, 2.0);
 	window.showWidget(name, line);
+}
+
+void viz3dPics::addArrow(line_t& lines, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b)
+{
+	viz::WArrow newArrow(a.second, b.second, 0.02, viz::Color::yellow());
+	lines[name] = { a, b };
+	window.showWidget(name, newArrow);
 }
 
 void viz3dPics::addPlane(plane_t& planes, cv::viz::Viz3d& window, const std::string name, float a, float b, float c, float dright)

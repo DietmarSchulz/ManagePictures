@@ -23,6 +23,7 @@ private:
 	void addSquare(square_t& squares, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b, namedPoint_t c, namedPoint_t d);
 	void addTriangle(triangle_t& triangles, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b, namedPoint_t c);
 	void addLine(line_t& lines, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b);
+	void addArrow(line_t& lines, cv::viz::Viz3d& window, const std::string name, namedPoint_t a, namedPoint_t b);
 	void addPlane(plane_t& planes, cv::viz::Viz3d& window, const std::string name, float a, float b, float c, float dright);
 };
 
