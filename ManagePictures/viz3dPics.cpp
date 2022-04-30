@@ -409,8 +409,13 @@ void viz3dPics::addPlane(plane_t& planes, cv::viz::Viz3d& window, const std::str
 	newPlane.setRenderingProperty(viz::OPACITY, 0.4);
 	newPlane.setRenderingProperty(viz::SHADING, viz::SHADING_FLAT);
 	newPlane.setRenderingProperty(viz::REPRESENTATION, viz::REPRESENTATION_SURFACE);
-	viz::WArrow origin(Point3d(0.0, 0.0, 0.0), center);
+	viz::WArrow origin(Point3d(0.0, 0.0, 0.0), center, 0.02, viz::Color::yellow());
 
 	window.showWidget(name, newPlane);
 	window.showWidget(name + "OriginArrow", origin);
+
+	viz::WArrow newY(center, center + Point3f(0, c, -b), 0.02, viz::Color::amethyst());
+	window.showWidget(name + "NewYArrow", newY);
+	viz::WArrow newX(center, center + Point3f(c, 0, -a), 0.02, viz::Color::amethyst());
+	window.showWidget(name + "NewXArrow", newX);
 }
