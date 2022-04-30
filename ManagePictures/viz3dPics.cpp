@@ -280,6 +280,7 @@ void viz3dPics::displayGeometry()
 	square_t squares;
 	triangle_t triangles;
 	line_t lines;
+	plane_t planes;
 
 	std::string filename = QFileDialog::getOpenFileName(nullptr, "Geometry file", QString(), "All geo Files (*.geo)").toStdString();
 	if (filename.empty()) {
@@ -289,7 +290,7 @@ void viz3dPics::displayGeometry()
 	std::ifstream ifs(filename);
 	while (!ifs.eof()) {
 		char sel;
-		float x, y, z;
+		float x, y, z, d;
 		std::string name;
 		ifs >> sel;
 		ifs >> name;
@@ -334,8 +335,15 @@ void viz3dPics::displayGeometry()
 				addTriangle(triangles, myWindow, name, { a, points[a] }, { b, points[b] }, { c, points[c] });
 			}
 			break;
+		case 'e':
+			ifs >> x;
+			ifs >> y;
+			ifs >> z;
+			ifs >> d;
+			addPlane(planes, myWindow, name, x, y, z, d);
 		}
 	}
+	myWindow.setWindowSize(Size(2000, 2000));
 	myWindow.spin();
 }
 
@@ -391,4 +399,18 @@ void viz3dPics::addLine(line_t& lines, cv::viz::Viz3d& window, const std::string
 	lines[name] = { a, b };
 	line.setRenderingProperty(viz::LINE_WIDTH, 2.0);
 	window.showWidget(name, line);
+}
+
+void viz3dPics::addPlane(plane_t& planes, cv::viz::Viz3d& window, const std::string name, float a, float b, float c, float dright)
+{
+	float norm = dright / (a * a + b * b + c * c);
+	Point3f center(a * norm, b * norm, c * norm);
+	viz::WPlane newPlane(center, Vec3f(a, b, c), Vec3f(0, c, -b), Size2d(5.0, 5.0), viz::Color::amethyst());
+	newPlane.setRenderingProperty(viz::OPACITY, 0.4);
+	newPlane.setRenderingProperty(viz::SHADING, viz::SHADING_FLAT);
+	newPlane.setRenderingProperty(viz::REPRESENTATION, viz::REPRESENTATION_SURFACE);
+	viz::WArrow origin(Point3d(0.0, 0.0, 0.0), center);
+
+	window.showWidget(name, newPlane);
+	window.showWidget(name + "OriginArrow", origin);
 }
