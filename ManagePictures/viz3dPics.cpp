@@ -416,6 +416,7 @@ void viz3dPics::addArrow(line_t& lines, cv::viz::Viz3d& window, const std::strin
 {
 	viz::WArrow newArrow(a.second, b.second, 0.02, viz::Color::yellow());
 	lines[name] = { a, b };
+	newArrow.setRenderingProperty(viz::OPACITY, 0.4);
 	window.showWidget(name, newArrow);
 }
 
