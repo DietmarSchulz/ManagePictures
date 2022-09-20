@@ -74,7 +74,7 @@ public:
 			"Random forests",
 			"Homography",
 			"Matches",
-			"3d Generation",
+			"3rd Generation",
 			"Add online month",
 			"Tutorial: Play Around",
 			"Tutorial: How to scan images",
