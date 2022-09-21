@@ -1553,10 +1553,13 @@ void Tutorial::saveSubPicture(std::string& pic)
 
     auto roi = cv::selectROI(window_image, src);
     auto subPicture = src(roi).clone();
+    imshow(result_window, subPicture);
     string saveAsPath = QFileDialog::getSaveFileName(nullptr, "Save as:", QString(), "All picture Files (*.jpg *.png *.tiff)").toStdString();
-    auto success = imwrite(saveAsPath, subPicture);
-    if (!success) {
-        cout << "Error writing the file\n";
+    if (!saveAsPath.empty()) {
+        auto success = imwrite(saveAsPath, subPicture);
+        if (!success) {
+            cout << "Error writing the file\n";
+        }
     }
     waitKey();
     destroyAllWindows();
