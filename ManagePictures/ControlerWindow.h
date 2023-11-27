@@ -1,11 +1,11 @@
 #pragma once
 #include <iostream>
-#include <QtWidgets/qwidget.h>
-#include <QtWidgets/qmessagebox.h>
-#include <QtWidgets/qpushbutton.h>
-#include <QtWidgets/qlistwidget.h>
-#include <QtWidgets/qapplication.h>
-#include <QtWidgets/qfiledialog.h>
+#include <Qt6/QtWidgets/qwidget.h>
+#include <Qt6/QtWidgets/qmessagebox.h>
+#include <Qt6/QtWidgets/qpushbutton.h>
+#include <Qt6/QtWidgets/qlistwidget.h>
+#include <Qt6/QtWidgets/qapplication.h>
+#include <Qt6/QtWidgets/qfiledialog.h>
 #include "PictureAnalyser.h"
 #include "PictureImprovement.h"
 #include "CameraUsage.h"

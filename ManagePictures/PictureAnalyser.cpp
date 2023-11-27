@@ -16,7 +16,7 @@
 #include <QtWidgets/qfiledialog.h>
 
 
-using namespace std;
+using namespace std;	
 using namespace cv;
 
 void PictureAnalyser::findIdentical(directorySet_t& pics)
@@ -599,6 +599,8 @@ void PictureAnalyser::addOnlineMonth()
 
 	QString dummy = R"(\\fritz.box\FRITZ.NAS\Onlinespeicher\Kamera Uploads)";
 	string dirToAdd = QFileDialog::getExistingDirectory(nullptr, "Open Folder", dummy).toStdString();
+	if (dirToAdd.empty())
+		return;
 
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(dirToAdd);
