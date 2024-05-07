@@ -605,7 +605,7 @@ void PictureAnalyser::addOnlineMonth()
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(dirToAdd);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(R"(\.jpg|\.jpeg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 	regex dateReg(R"((\d\d\d\d):(\d\d):(\d\d)\s(\d\d):(\d\d):(\d\d))", wregex::flag_type::ECMAScript | wregex::flag_type::icase); // like 2021:07:24 17:06:22
 
 	filePathVector_t imgPaths;
@@ -625,8 +625,10 @@ void PictureAnalyser::addOnlineMonth()
 			st.wSecond = stoi(m[6].str());
 			st.wMilliseconds = 0;
 			auto res = SystemTimeToFileTime(&st, (FILETIME*)&t);
-			if (!res)
+			if (!res) {
+				std::cout << "SystemTimeToFileTime failed!\n";
 				return;
+			}
 		}
 		else {
 			auto res = FileTimeToSystemTime((FILETIME*)&t, &st);
