@@ -89,7 +89,7 @@ void PictureAnalyser::analyse(string_view s)
 	int maxDups{ 0 };
 	filesystem::recursive_directory_iterator dirs(startPath);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(picExtensions, wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 	for (auto& p : paths) {
 		if (is_regular_file(p) && regex_match(p.extension().generic_string(), extReg)) {
 			name2paths[p.filename().generic_string()].insert(p);
@@ -176,7 +176,7 @@ void PictureAnalyser::showDirsPicture(string& s)
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(s);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(picExtensions, wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 
 	filePathVector_t imgPaths;
 	for (auto& p : paths) {
@@ -296,7 +296,7 @@ void PictureAnalyser::timeSortedUniques()
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs("c:/KameraUploads");
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(picExtensions, wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 
 	filePathVector_t imgPaths;
 	ticks2indices_t fileTime2indices;
@@ -410,7 +410,7 @@ void PictureAnalyser::timeSortedSDCard()
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs("d:/pictures/SDCard");
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(picExtensions, wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 
 	filePathVector_t imgPaths;
 	ticks2indices_t fileTime2indices;
@@ -526,7 +526,7 @@ void PictureAnalyser::setDateOfFolder(string& folderPath)
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(folderPath);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(picExtensions, wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 
 	for (auto & p : paths) {
 		if (is_regular_file(p) && regex_match(p.extension().generic_string(), extReg)) {
@@ -605,7 +605,7 @@ void PictureAnalyser::addOnlineMonth()
 	filePathVector_t paths;
 	filesystem::recursive_directory_iterator dirs(dirToAdd);
 	copy(begin(dirs), end(dirs), std::back_inserter(paths));
-	regex extReg(R"(\.jpg|\.jpeg|\.png|\.bmp|\.tif)", wregex::flag_type::ECMAScript | wregex::flag_type::icase);
+	regex extReg(picExtensions, wregex::flag_type::ECMAScript | wregex::flag_type::icase);
 	regex dateReg(R"((\d\d\d\d):(\d\d):(\d\d)\s(\d\d):(\d\d):(\d\d))", wregex::flag_type::ECMAScript | wregex::flag_type::icase); // like 2021:07:24 17:06:22
 
 	filePathVector_t imgPaths;

@@ -14,6 +14,7 @@ class PictureAnalyser
 	using filePathVector_t = std::vector<std::filesystem::path>;
 	using ticks2indices_t = std::map<long long, std::vector<int>>;
 	const int dispDelta{300};
+	const char* picExtensions {R"(\.jpg|\.jpeg|\.png|\.bmp|\.tif)"};
 
 	std::filesystem::path startPath{"d:/Pictures"};
 	std::set<std::string> uniquePaths;
